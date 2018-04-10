@@ -3,12 +3,13 @@ pub use stderrlog::Timestamp;
 
 // Create the Error, ErrorKind, ResultExt, and Result types
 error_chain!{
+    //add custom or mapped error types here
     foreign_links {
-        Fmt(::hex::FromHexError);
+        FromHexError(::hex::FromHexError);
         StringConv(::std::str::Utf8Error);
+        Io(::std::io::Error);
     }
 }
-//TODO add custom or mapped error types here
 
 #[derive(Debug)]
 pub struct Settings {

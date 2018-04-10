@@ -34,7 +34,6 @@ fn main() {
 // for which the error type is always our own `Error`.
 fn run(_config: &Settings) -> Result<()> {
     trace!("Entry to top level run()");
-    //DO STUFF
 
     println!("Set 1 Challenge 1");
     let buffer = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d")?;
@@ -56,7 +55,7 @@ fn run(_config: &Settings) -> Result<()> {
     let mut best_key = 0;
     let mut best_count_of_common_english = 0;
     let frequents = "etaoinshrdlu";
-    for key in 0..255 {
+    for key in 0..std::u8::MAX {
         let xored : Vec<u8> = buffer.iter().map(|x| x ^ key).collect();
         let mut count_of_common_english = 0;
         for c in frequents.chars() {
@@ -70,5 +69,54 @@ fn run(_config: &Settings) -> Result<()> {
     let plaintext : Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
     println!("{}", std::str::from_utf8(&plaintext)?);
 
+    println!("Set 1 Challenge 4");
+    use std::io::BufRead;
+    let file = std::fs::File::open("data/set1-challenge4.txt").chain_err(|| "Failed to open data/set1-challenge4.txt")?;
+    let file = std::io::BufReader::new(&file);
+    let mut best_plaintext = Vec::new();
+    let mut best_total_score = 0;
+    for line in file.lines().filter_map(std::io::Result::ok) {
+        let mut best_key = 0;
+        let mut best_score = 0;
+        for key in 0..std::u8::MAX {
+            let xored : Vec<u8> = line.chars().map(|x| (x as u8) ^ key).collect();
+            let score = score_potential_plaintext(&xored);
+            if score > best_score {
+                best_score = score;
+                best_key = key;
+            }
+        }
+        let plaintext : Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
+        debug!("{}", std::str::from_utf8(&plaintext)?);
+        if best_score > best_total_score {
+            best_total_score = best_score;
+            best_plaintext = plaintext.clone();
+        }
+    }
+    println!("{}", std::str::from_utf8(&best_plaintext)?);
+
     Ok(())
 }
+
+fn score_potential_plaintext(plaintext: &[u8]) -> usize {
+    let frequent_map : std::collections::HashMap<u8, usize> =
+        [('e' as u8, 13),
+        ('t' as u8, 12),
+        ('a' as u8, 11),
+        ('o' as u8, 10),
+        ('i' as u8, 9),
+        ('n' as u8, 8),
+        (' ' as u8, 7),
+        ('s' as u8, 6),
+        ('h' as u8, 5),
+        ('r' as u8, 4),
+        ('d' as u8, 3),
+        ('l' as u8, 2),
+        ('u' as u8, 1)].iter().cloned().collect();
+    let mut score = 0;
+    for c in plaintext.iter() {
+        score += frequent_map.get(c).unwrap_or(&0);
+    }
+    score
+}
+
