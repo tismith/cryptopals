@@ -32,9 +32,21 @@ fn main() {
 // Most functions will return the `Result` type, imported from the
 // `types` module. It is a typedef of the standard `Result` type
 // for which the error type is always our own `Error`.
-fn run(_config: &Settings) -> Result<()> {
-    trace!("Entry to top level run()");
+fn run(config: &Settings) -> Result<()> {
+    trace!("run()");
 
+    match config.subcommand {
+        types::SubCommand::None => run_challenges(),
+        types::SubCommand::GenChi2(ref source) => gen_chi2(source),
+    }
+}
+
+fn gen_chi2(_source: &str) -> types::Result<()> {
+    unimplemented!();
+}
+
+fn run_challenges() -> types::Result<()> {
+    trace!("run_challenges()");
     println!("Set 1 Challenge 1");
     let buffer = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d")?;
     let base64 = base64::encode(&buffer);
