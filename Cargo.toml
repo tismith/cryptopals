@@ -1,5 +1,5 @@
 [package]
-name = "example-cli-rs"
+name = "cryptopals-set1"
 version = "0.1.0"
 authors = ["Toby Smith <toby@tismith.id.au>"]
 
