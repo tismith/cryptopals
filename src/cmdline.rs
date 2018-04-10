@@ -53,14 +53,11 @@ pub fn parse_cmdline() -> types::Settings {
     };
 
     let mut subcommand = types::SubCommand::None;
-    match matches.subcommand() {
-        ("gen-chi2", Some(sub_matches)) => {
-            //this unwrap should be safe, since clap will error earlier
-            //if it's not present
-            let source = sub_matches.value_of("source").unwrap();
-            subcommand = types::SubCommand::GenChi2(source.into());
-        }
-        _ => (),
+    if let ("gen-chi2", Some(sub_matches)) = matches.subcommand() {
+        //this unwrap should be safe, since clap will error earlier
+        //if it's not present
+        let source = sub_matches.value_of("source").unwrap();
+        subcommand = types::SubCommand::GenChi2(source.into());
     }
 
     types::Settings {

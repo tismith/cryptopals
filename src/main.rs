@@ -10,6 +10,7 @@ extern crate stderrlog;
 #[macro_use]
 extern crate clap;
 extern crate base64;
+extern crate bytecount;
 extern crate hex;
 
 mod cmdline;
@@ -42,6 +43,7 @@ fn run(config: &Settings) -> Result<()> {
 }
 
 fn gen_chi2(_source: &str) -> types::Result<()> {
+    trace!("gen_chi2()");
     unimplemented!();
 }
 
@@ -72,7 +74,7 @@ fn run_challenges() -> types::Result<()> {
         let xored: Vec<u8> = buffer.iter().map(|x| x ^ key).collect();
         let mut count_of_common_english = 0;
         for c in frequents.chars() {
-            count_of_common_english += xored.iter().filter(|&n| *n == c as u8).count();
+            count_of_common_english += bytecount::count(&xored, c as u8);
         }
         if count_of_common_english > best_count_of_common_english {
             best_count_of_common_english = count_of_common_english;
