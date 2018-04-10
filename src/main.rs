@@ -44,7 +44,11 @@ fn run(_config: &Settings) -> Result<()> {
     println!("Set 1 Challenge 2");
     let buffer1 = hex::decode("1c0111001f010100061a024b53535009181c")?;
     let buffer2 = hex::decode("686974207468652062756c6c277320657965")?;
-    let xored : Vec<u8> = buffer1.iter().zip(buffer2.iter()).map(|(x,y)| x ^ y).collect();
+    let xored: Vec<u8> = buffer1
+        .iter()
+        .zip(buffer2.iter())
+        .map(|(x, y)| x ^ y)
+        .collect();
     println!("{}", hex::encode(&xored));
 
     println!("Set 1 Challenge 3");
@@ -52,4 +56,3 @@ fn run(_config: &Settings) -> Result<()> {
 
     Ok(())
 }
-
