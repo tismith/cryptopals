@@ -134,7 +134,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cryptopals-set1"
+name = "cryptopals"
 version = "0.1.0"
 dependencies = [
  "assert_cli 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",

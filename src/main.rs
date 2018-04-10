@@ -63,12 +63,13 @@ fn run_challenges() -> types::Result<()> {
     println!("{}", hex::encode(&xored));
 
     println!("Set 1 Challenge 3");
-    let buffer = hex::decode("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736")?;
+    let buffer =
+        hex::decode("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736")?;
     let mut best_key = 0;
     let mut best_count_of_common_english = 0;
     let frequents = "etaoinshrdlu";
     for key in 0..std::u8::MAX {
-        let xored : Vec<u8> = buffer.iter().map(|x| x ^ key).collect();
+        let xored: Vec<u8> = buffer.iter().map(|x| x ^ key).collect();
         let mut count_of_common_english = 0;
         for c in frequents.chars() {
             count_of_common_english += xored.iter().filter(|&n| *n == c as u8).count();
@@ -78,12 +79,13 @@ fn run_challenges() -> types::Result<()> {
             best_key = key;
         }
     }
-    let plaintext : Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
+    let plaintext: Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
     println!("{}", std::str::from_utf8(&plaintext)?);
 
     println!("Set 1 Challenge 4");
     use std::io::BufRead;
-    let file = std::fs::File::open("data/set1-challenge4.txt").chain_err(|| "Failed to open data/set1-challenge4.txt")?;
+    let file = std::fs::File::open("data/set1-challenge4.txt")
+        .chain_err(|| "Failed to open data/set1-challenge4.txt")?;
     let file = std::io::BufReader::new(&file);
     let mut best_plaintext = Vec::new();
     let mut best_total_score = 0;
@@ -91,14 +93,14 @@ fn run_challenges() -> types::Result<()> {
         let mut best_key = 0;
         let mut best_score = 0;
         for key in 0..std::u8::MAX {
-            let xored : Vec<u8> = line.chars().map(|x| (x as u8) ^ key).collect();
+            let xored: Vec<u8> = line.chars().map(|x| (x as u8) ^ key).collect();
             let score = score_potential_plaintext(&xored);
             if score > best_score {
                 best_score = score;
                 best_key = key;
             }
         }
-        let plaintext : Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
+        let plaintext: Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
         debug!("{}", std::str::from_utf8(&plaintext)?);
         if best_score > best_total_score {
             best_total_score = best_score;
@@ -111,24 +113,26 @@ fn run_challenges() -> types::Result<()> {
 }
 
 fn score_potential_plaintext(plaintext: &[u8]) -> usize {
-    let frequent_map : std::collections::HashMap<u8, usize> =
-        [('e' as u8, 13),
-        ('t' as u8, 12),
-        ('a' as u8, 11),
-        ('o' as u8, 10),
-        ('i' as u8, 9),
-        ('n' as u8, 8),
-        (' ' as u8, 7),
-        ('s' as u8, 6),
-        ('h' as u8, 5),
-        ('r' as u8, 4),
-        ('d' as u8, 3),
-        ('l' as u8, 2),
-        ('u' as u8, 1)].iter().cloned().collect();
+    let frequent_map: std::collections::HashMap<u8, usize> = [
+        (b'e', 13),
+        (b't', 12),
+        (b'a', 11),
+        (b'o', 10),
+        (b'i', 9),
+        (b'n', 8),
+        (b' ', 7),
+        (b's', 6),
+        (b'h', 5),
+        (b'r', 4),
+        (b'd', 3),
+        (b'l', 2),
+        (b'u', 1),
+    ].iter()
+        .cloned()
+        .collect();
     let mut score = 0;
     for c in plaintext.iter() {
         score += frequent_map.get(c).unwrap_or(&0);
     }
     score
 }
-
