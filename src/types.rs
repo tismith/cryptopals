@@ -5,6 +5,7 @@ pub use stderrlog::Timestamp;
 error_chain!{
     foreign_links {
         Fmt(::hex::FromHexError);
+        StringConv(::std::str::Utf8Error);
     }
 }
 //TODO add custom or mapped error types here

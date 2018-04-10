@@ -52,7 +52,23 @@ fn run(_config: &Settings) -> Result<()> {
     println!("{}", hex::encode(&xored));
 
     println!("Set 1 Challenge 3");
-    //...
+    let buffer = hex::decode("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736")?;
+    let mut best_key = 0;
+    let mut best_count_of_common_english = 0;
+    let frequents = "etaoinshrdlu";
+    for key in 0..255 {
+        let xored : Vec<u8> = buffer.iter().map(|x| x ^ key).collect();
+        let mut count_of_common_english = 0;
+        for c in frequents.chars() {
+            count_of_common_english += xored.iter().filter(|&n| *n == c as u8).count();
+        }
+        if count_of_common_english > best_count_of_common_english {
+            best_count_of_common_english = count_of_common_english;
+            best_key = key;
+        }
+    }
+    let plaintext : Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
+    println!("{}", std::str::from_utf8(&plaintext)?);
 
     Ok(())
 }
