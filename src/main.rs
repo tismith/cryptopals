@@ -73,9 +73,11 @@ fn run_set1() -> types::Result<()> {
     trace!("run_challenges()");
     {
         println!("Set 1 Challenge 1");
-        let buffer = hex::decode("49276d206b696c6c696e6720796f7\
-                                 57220627261696e206c696b65206120\
-                                 706f69736f6e6f7573206d757368726f6f6d")?;
+        let buffer = hex::decode(
+            "49276d206b696c6c696e6720796f7\
+             57220627261696e206c696b65206120\
+             706f69736f6e6f7573206d757368726f6f6d",
+        )?;
         let base64 = base64::encode(&buffer);
         println!("{}", base64);
     }
@@ -94,9 +96,10 @@ fn run_set1() -> types::Result<()> {
 
     {
         println!("Set 1 Challenge 3");
-        let buffer =
-            hex::decode("1b37373331363f78151b7f2b783431333d7\
-                        8397828372d363c78373e783a393b3736")?;
+        let buffer = hex::decode(
+            "1b37373331363f78151b7f2b783431333d7\
+             8397828372d363c78373e783a393b3736",
+        )?;
         let mut best_key = 0;
         let mut best_count_of_common_english = 0;
         let frequents = "etaoinshrdlu";
@@ -151,8 +154,7 @@ fn run_set1() -> types::Result<()> {
 
     {
         println!("Set 1 Challenge 5");
-        let plaintext =
-            b"Burning 'em, if you ain't quick and nimble \
+        let plaintext = b"Burning 'em, if you ain't quick and nimble \
             I go crazy when I hear a cymbal";
         let key = b"ICE";
         println!("{}", hex::encode(repeating_key_xor(plaintext, key)));
@@ -173,12 +175,12 @@ fn run_set1() -> types::Result<()> {
 
 fn repeating_key_xor(plaintext: &[u8], key: &[u8]) -> Vec<u8> {
     let key_len = key.len();
-    plaintext.iter()
+    plaintext
+        .iter()
         .enumerate()
         .map(|(n, x)| x ^ key[n % key_len])
         .collect()
 }
-
 
 fn chi2_score_english(plaintext: &[u8]) -> f64 {
     //this came from the gen-chi2 subcommand
@@ -271,17 +273,15 @@ mod test {
 
     #[test]
     fn test_repeating_key_xor() {
-        let plaintext =
-            b"Burning 'em, if you ain't quick and nimble\n\
+        let plaintext = b"Burning 'em, if you ain't quick and nimble\n\
             I go crazy when I hear a cymbal";
         let key = b"ICE";
-        let encrypted_source =
-            b"0b3637272a2b2e63622c2e69692a23693a2a3c6324202d\
-            623d63343c2a26226324272765272a282b2f20430a652e2c\
-            652a3124333a653e2b2027630c692b20283165286326302e27282f".to_vec();
+        let encrypted_source = b"0b3637272a2b2e63622c2e69692a23693a2a\
+            3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2\
+            c652a3124333a653e2b2027630c692b20283165286326302e27282f"
+            .to_vec();
         let encrypted = hex::decode(encrypted_source).unwrap();
         assert_eq!(repeating_key_xor(plaintext, key), encrypted);
-
     }
 
     #[test]
