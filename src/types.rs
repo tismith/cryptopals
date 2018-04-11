@@ -6,7 +6,8 @@ error_chain!{
     //add custom or mapped error types here
     foreign_links {
         FromHexError(::hex::FromHexError);
-        StringConv(::std::str::Utf8Error);
+        Utf8Error(::std::str::Utf8Error);
+        Base64DecodeError(::base64::DecodeError);
         Io(::std::io::Error);
     }
 }
