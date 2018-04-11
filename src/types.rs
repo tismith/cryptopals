@@ -15,6 +15,7 @@ error_chain!{
 pub enum SubCommand {
     None,
     GenChi2(String),
+    Set1,
 }
 
 #[derive(Debug)]

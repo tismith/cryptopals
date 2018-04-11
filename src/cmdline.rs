@@ -29,6 +29,7 @@ pub fn parse_cmdline() -> types::Settings {
             clap::SubCommand::with_name("gen-chi2")
                 .arg(clap::Arg::with_name("source").required(true)),
         )
+        .subcommand(clap::SubCommand::with_name("set1"))
         .get_matches();
 
     let verbosity = matches.occurrences_of("verbosity") as usize;
@@ -52,13 +53,16 @@ pub fn parse_cmdline() -> types::Settings {
         }.exit(),
     };
 
-    let mut subcommand = types::SubCommand::None;
-    if let ("gen-chi2", Some(sub_matches)) = matches.subcommand() {
-        //this unwrap should be safe, since clap will error earlier
-        //if it's not present
-        let source = sub_matches.value_of("source").unwrap();
-        subcommand = types::SubCommand::GenChi2(source.into());
-    }
+    let subcommand = match matches.subcommand() {
+        ("gen-chi2", Some(sub_matches)) => {
+            //this unwrap should be safe, since clap will error earlier
+            //if it's not present
+            let source = sub_matches.value_of("source").unwrap();
+            types::SubCommand::GenChi2(source.into())
+        }
+        ("set1", _) => types::SubCommand::Set1,
+        _ => types::SubCommand::None,
+    };
 
     types::Settings {
         verbosity,

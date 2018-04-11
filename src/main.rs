@@ -37,7 +37,8 @@ fn run(config: &Settings) -> Result<()> {
     trace!("run()");
 
     match config.subcommand {
-        types::SubCommand::None => run_challenges(),
+        types::SubCommand::None => Ok(()),
+        types::SubCommand::Set1 => run_challenges(),
         types::SubCommand::GenChi2(ref source) => gen_chi2(source),
     }
 }
@@ -45,16 +46,15 @@ fn run(config: &Settings) -> Result<()> {
 fn gen_chi2(source: &str) -> types::Result<()> {
     use std::io::Read;
     trace!("gen_chi2()");
-    let mut file = std::fs::File::open(source)
-        .chain_err(|| "Failed to open source file")?;
+    let mut file = std::fs::File::open(source).chain_err(|| "Failed to open source file")?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
     let base_chars = "abcdefghijklmnopqrstuvwxyz '\"`-:.,?!";
-    let mut pop_frequencies: std::collections::HashMap<u8, f64> =
-        std::collections::HashMap::new();
+    let mut pop_frequencies: std::collections::HashMap<u8, f64> = std::collections::HashMap::new();
     let total_len = buffer.len() as f64;
+    debug!("total_len is {}", &total_len);
     for c in base_chars.chars() {
-        trace!("considering {}", &c);
+        debug!("considering {}", &c);
         let count = bytecount::count(&buffer, c as u8);
         let _ = pop_frequencies.insert(c as u8, count as f64 / total_len);
     }
@@ -64,7 +64,6 @@ fn gen_chi2(source: &str) -> types::Result<()> {
         println!("\t(b\'{}\', {}),", *key as char, val);
     }
     println!("].iter().cloned().collect();");
-
 
     Ok(())
 }
@@ -113,105 +112,121 @@ fn run_challenges() -> types::Result<()> {
     let file = std::io::BufReader::new(&file);
     let mut best_plaintext = Vec::new();
     let mut best_total_score = std::f64::MAX;
+    let mut plaintexts = Vec::new();
     for line in file.lines().filter_map(std::io::Result::ok) {
         let mut best_key = 0;
         let mut best_score = std::f64::MAX;
         for key in 0..std::u8::MAX {
-            let xored: Vec<u8> = line.chars().map(|x| (x as u8) ^ key).collect();
-            if std::str::from_utf8(&xored).is_err() {
-                continue;
+            let plaintext: Vec<u8> = line.chars().map(|x| (x as u8) ^ key).collect();
+            let score = chi2_score_english(&plaintext);
+            if std::str::from_utf8(&plaintext).is_ok() {
+                debug!("{}", std::str::from_utf8(&plaintext)?);
             }
-            let score = chi2_score_english(&xored);
             debug!("chi2 score is {}", score);
+
             if score < best_score {
                 best_score = score;
                 best_key = key;
             }
         }
         let plaintext: Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
+        plaintexts.push((best_score, plaintext.clone()));
+        debug!("best score is {}", &best_score);
         debug!("{}", std::str::from_utf8(&plaintext)?);
         if best_score < best_total_score {
             best_total_score = best_score;
             best_plaintext = plaintext.clone();
         }
     }
-    println!("{}", std::str::from_utf8(&best_plaintext)?);
+
+    println!("Best:\n{}", std::str::from_utf8(&best_plaintext)?);
+    println!("Top 20:");
+    plaintexts.sort_by(|&(x,_), &(y,_)| x.partial_cmp(&y).unwrap());
+    for text in plaintexts.iter().take(20) {
+        println!("{}", std::str::from_utf8(&text.1)?);
+    }
 
     Ok(())
 }
 
 fn chi2_score_english(plaintext: &[u8]) -> f64 {
-	let pop_frequencies: std::collections::HashMap<u8, f64> = [
-		(b'a', 0.058387284011251504),
-		(b'v', 0.007730499620484887),
-		(b'w', 0.016764447619472846),
-		(b'z', 0.000678662320846542),
-		(b'j', 0.000674495096069414),
-		(b'q', 0.0006834248634489739),
-		(b'.', 0.009190218928130255),
-		(b'f', 0.01576223006057359),
-		(b'b', 0.009242904555669658),
-		(b'u', 0.019084698843595125),
-		(b'l', 0.02852167701031388),
-		(b'-', 0.0005447158101531455),
-		(b'p', 0.011613757794942775),
-		(b'x', 0.0011046122248515426),
-		(b'd', 0.03461177836317364),
-		(b'`', 0.0),
-		(b'g', 0.014890089446503251),
-		(b'o', 0.05609322677144261),
-		(b'y', 0.013385721301960083),
-		(b'!', 0.001168608891071721),
-		(b'h', 0.048529416142042835),
-		(b'c', 0.017713086574094743),
-		(b',', 0.011874209343513268),
-		(b':', 0.00030212379634177194),
-		(b'k', 0.005724278549210459),
-		(b's', 0.04759893438109271),
-		(b' ', 0.15389620633715825),
-		(b'?', 0.0009331606911639952),
-		(b'"', 0.0),
-		(b'r', 0.0432718667678707),
-		(b'e', 0.09266657736899288),
-		(b'n', 0.05374826985757021),
-		(b'm', 0.01737762497953595),
-		(b'\'', 0.0),
-		(b'i', 0.04891309848045125),
-		(b't', 0.06536470658272685),
-	].iter().cloned().collect();
+    //this came from the gen-chi2 subcommand
+    let pop_frequencies: std::collections::HashMap<u8, f64> = [
+        (b'a', 0.058387284011251504),
+        (b'v', 0.007730499620484887),
+        (b'w', 0.016764447619472846),
+        (b'z', 0.000678662320846542),
+        (b'j', 0.000674495096069414),
+        (b'q', 0.0006834248634489739),
+        (b'.', 0.009190218928130255),
+        (b'f', 0.01576223006057359),
+        (b'b', 0.009242904555669658),
+        (b'u', 0.019084698843595125),
+        (b'l', 0.02852167701031388),
+        (b'-', 0.0005447158101531455),
+        (b'p', 0.011613757794942775),
+        (b'x', 0.0011046122248515426),
+        (b'd', 0.03461177836317364),
+        (b'`', 0.0),
+        (b'g', 0.014890089446503251),
+        (b'o', 0.05609322677144261),
+        (b'y', 0.013385721301960083),
+        (b'!', 0.001168608891071721),
+        (b'h', 0.048529416142042835),
+        (b'c', 0.017713086574094743),
+        (b',', 0.011874209343513268),
+        (b':', 0.00030212379634177194),
+        (b'k', 0.005724278549210459),
+        (b's', 0.04759893438109271),
+        (b' ', 0.15389620633715825),
+        (b'?', 0.0009331606911639952),
+        (b'"', 0.0),
+        (b'r', 0.0432718667678707),
+        (b'e', 0.09266657736899288),
+        (b'n', 0.05374826985757021),
+        (b'm', 0.01737762497953595),
+        (b'\'', 0.0),
+        (b'i', 0.04891309848045125),
+        (b't', 0.06536470658272685),
+    ].iter()
+        .cloned()
+        .collect();
     let mut score = 0.0;
-    let sample_size = plaintext.len();
-    for key in pop_frequencies.keys() {
-        let observed = bytecount::count(plaintext, *key);
-        let observed_freq = observed as f64 / sample_size as f64;
-        let population_freq = pop_frequencies.get(key).unwrap();
-        score = score + ((observed_freq - population_freq).powi(2))/(population_freq + 0.000000000001);
+    let mut sample_size = 0.0;
+    let mut plaintext_counts = std::collections::HashMap::new();
+    for c in plaintext {
+        if c.is_ascii() {
+            let c = c.to_ascii_lowercase();
+            let current_count = *(plaintext_counts.get(&c).unwrap_or(&0.0));
+            plaintext_counts.insert(c, current_count + 1.0);
+        } else {
+            //not ascii, just bail early
+            return std::f64::MAX;
+        }
+        sample_size += 1.0;
+    }
+    for (key, observed) in &plaintext_counts {
+        let population_freq = *(pop_frequencies.get(key).unwrap_or(&0.0));
+        let expected = population_freq * sample_size;
+        //add something so we never divide by 0
+        score += ((observed - expected).powi(2)) / (expected + 0.00000000000001);
     }
     score
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
 
-fn score_potential_plaintext(plaintext: &[u8]) -> usize {
-    let frequent_map: std::collections::HashMap<u8, usize> = [
-        (b'e', 13),
-        (b't', 12),
-        (b'a', 11),
-        (b'o', 10),
-        (b'i', 9),
-        (b'n', 8),
-        (b' ', 7),
-        (b's', 6),
-        (b'h', 5),
-        (b'r', 4),
-        (b'd', 3),
-        (b'l', 2),
-        (b'u', 1),
-    ].iter()
-        .cloned()
-        .collect();
-    let mut score = 0;
-    for c in plaintext.iter() {
-        score += frequent_map.get(c).unwrap_or(&0);
+    #[test]
+    fn test_chi2_english() {
+        let score1 = chi2_score_english(b"this is an english sentence");
+        let score2 = chi2_score_english(b"q0394ui[ear vadadasf");
+        let score3 = chi2_score_english(b"This is an English sentence");
+        let score4 = chi2_score_english(b"this^^english sentence");
+        assert!(score1 < score2);
+        //floating point comparision using e of 0.0001
+        assert!(score1 > (score3 - 0.0001) && score1 < (score3 + 0.0001));
+        assert!(score1 < score4);
     }
-    score
 }
