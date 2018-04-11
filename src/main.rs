@@ -38,7 +38,7 @@ fn run(config: &Settings) -> Result<()> {
 
     match config.subcommand {
         types::SubCommand::None => Ok(()),
-        types::SubCommand::Set1 => run_challenges(),
+        types::SubCommand::Set1 => run_set1(),
         types::SubCommand::GenChi2(ref source) => gen_chi2(source),
     }
 }
@@ -68,7 +68,7 @@ fn gen_chi2(source: &str) -> types::Result<()> {
     Ok(())
 }
 
-fn run_challenges() -> types::Result<()> {
+fn run_set1() -> types::Result<()> {
     trace!("run_challenges()");
     {
         println!("Set 1 Challenge 1");
@@ -141,6 +141,16 @@ fn run_challenges() -> types::Result<()> {
 
         println!("{}", std::str::from_utf8(&best_plaintext)?);
     }
+
+    {
+        println!("Set 1 Challenge 5");
+        let plaintext : Vec<u8> = b"Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal".to_vec();
+        let key : Vec<u8> = b"ICE".to_vec();
+        let key_len = key.len();
+        let encrypted : Vec<u8>  = plaintext.iter().enumerate().map(|(n, x)| x ^ key[n % key_len]).collect();
+        println!("{}", hex::encode(encrypted));
+    }
+
 
     Ok(())
 }
