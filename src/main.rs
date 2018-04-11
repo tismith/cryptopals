@@ -148,9 +148,9 @@ fn run_set1() -> types::Result<()> {
 
     {
         println!("Set 1 Challenge 5");
-        let plaintext: Vec<u8> =
-            b"Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal".to_vec();
-        let key: Vec<u8> = b"ICE".to_vec();
+        let plaintext =
+            b"Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal";
+        let key = b"ICE";
         let key_len = key.len();
         let encrypted: Vec<u8> = plaintext
             .iter()
