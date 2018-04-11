@@ -290,8 +290,8 @@ mod test {
 
     #[test]
     fn test_hamming_distance() {
-        let one = "this is a test".as_bytes();
-        let two = "wokka wokka!!!".as_bytes();
+        let one = b"this is a test";
+        let two = b"wokka wokka!!!";
         assert_eq!(37, hamming_distance(one, two));
     }
 }
