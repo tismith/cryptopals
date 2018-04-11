@@ -104,7 +104,7 @@ fn run_set1() -> types::Result<()> {
         let mut best_count_of_common_english = 0;
         let frequents = "etaoinshrdlu";
         for key in 0..std::u8::MAX {
-            let xored: Vec<u8> = buffer.iter().map(|x| x ^ key).collect();
+            let xored = single_char_xor(&buffer, &key);
             let mut count_of_common_english = 0;
             for c in frequents.chars() {
                 count_of_common_english += bytecount::count(&xored, c as u8);
@@ -134,7 +134,7 @@ fn run_set1() -> types::Result<()> {
             let mut best_key = 0;
             let mut best_score = std::f64::MAX;
             for key in 0..std::u8::MAX {
-                let plaintext: Vec<u8> = buffer.iter().map(|x| *x ^ key).collect();
+                let plaintext = single_char_xor(&buffer, &key);
                 let score = chi2_score_english(&plaintext);
 
                 if score < best_score {
@@ -142,7 +142,7 @@ fn run_set1() -> types::Result<()> {
                     best_key = key;
                 }
             }
-            let plaintext: Vec<u8> = buffer.iter().map(|x| *x ^ best_key).collect();
+            let plaintext = single_char_xor(&buffer, &best_key);
             if best_score < best_total_score {
                 best_total_score = best_score;
                 best_plaintext = plaintext.clone();
@@ -171,6 +171,10 @@ fn run_set1() -> types::Result<()> {
     }
 
     Ok(())
+}
+
+fn single_char_xor(plaintext: &[u8], key: &u8) -> Vec<u8> {
+    plaintext.iter().map(|x| x ^ key).collect()
 }
 
 fn repeating_key_xor(plaintext: &[u8], key: &[u8]) -> Vec<u8> {
