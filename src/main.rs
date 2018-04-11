@@ -121,7 +121,10 @@ fn run_set1() -> types::Result<()> {
         let mut best_plaintext = Vec::new();
         let mut best_total_score = std::f64::MAX;
         for line in file.lines().filter_map(std::io::Result::ok) {
-            let buffer = hex::decode(line)?;
+            let buffer = match hex::decode(line) {
+                Err(_) => continue,
+                Ok(b) => b,
+            };
             let mut best_key = 0;
             let mut best_score = std::f64::MAX;
             for key in 0..std::u8::MAX {
