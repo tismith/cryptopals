@@ -243,7 +243,7 @@ fn hamming_distance(a: &[u8], b: &[u8]) -> usize {
     let b = bit_vec::BitVec::from_bytes(b);
     a.iter()
         .zip(b.iter())
-        .fold(0, |count, (x, y)| if x != y { count + 1 } else { count })
+        .fold(0, |count, (x, y)| count + (x != y) as usize)
 }
 
 #[cfg(test)]
