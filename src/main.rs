@@ -42,9 +42,31 @@ fn run(config: &Settings) -> Result<()> {
     }
 }
 
-fn gen_chi2(_source: &str) -> types::Result<()> {
+fn gen_chi2(source: &str) -> types::Result<()> {
+    use std::io::Read;
     trace!("gen_chi2()");
-    unimplemented!();
+    let mut file = std::fs::File::open(source)
+        .chain_err(|| "Failed to open source file")?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    let base_chars = "abcdefghijklmnopqrstuvwxyz '\"`-:.,?!";
+    let mut pop_frequencies: std::collections::HashMap<u8, f64> =
+        std::collections::HashMap::new();
+    let total_len = buffer.len() as f64;
+    for c in base_chars.chars() {
+        trace!("considering {}", &c);
+        let count = bytecount::count(&buffer, c as u8);
+        let _ = pop_frequencies.insert(c as u8, count as f64 / total_len);
+    }
+
+    println!("let pop_frequencies: std::collections::HashMap<u8, f64> = [");
+    for (key, val) in &pop_frequencies {
+        println!("\t(b\'{}\', {}),", *key as char, val);
+    }
+    println!("].iter().cloned().collect();");
+
+
+    Ok(())
 }
 
 fn run_challenges() -> types::Result<()> {
@@ -90,21 +112,25 @@ fn run_challenges() -> types::Result<()> {
         .chain_err(|| "Failed to open data/set1-challenge4.txt")?;
     let file = std::io::BufReader::new(&file);
     let mut best_plaintext = Vec::new();
-    let mut best_total_score = 0;
+    let mut best_total_score = std::f64::MAX;
     for line in file.lines().filter_map(std::io::Result::ok) {
         let mut best_key = 0;
-        let mut best_score = 0;
+        let mut best_score = std::f64::MAX;
         for key in 0..std::u8::MAX {
             let xored: Vec<u8> = line.chars().map(|x| (x as u8) ^ key).collect();
-            let score = score_potential_plaintext(&xored);
-            if score > best_score {
+            if std::str::from_utf8(&xored).is_err() {
+                continue;
+            }
+            let score = chi2_score_english(&xored);
+            debug!("chi2 score is {}", score);
+            if score < best_score {
                 best_score = score;
                 best_key = key;
             }
         }
         let plaintext: Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
         debug!("{}", std::str::from_utf8(&plaintext)?);
-        if best_score > best_total_score {
+        if best_score < best_total_score {
             best_total_score = best_score;
             best_plaintext = plaintext.clone();
         }
@@ -113,6 +139,57 @@ fn run_challenges() -> types::Result<()> {
 
     Ok(())
 }
+
+fn chi2_score_english(plaintext: &[u8]) -> f64 {
+	let pop_frequencies: std::collections::HashMap<u8, f64> = [
+		(b'a', 0.058387284011251504),
+		(b'v', 0.007730499620484887),
+		(b'w', 0.016764447619472846),
+		(b'z', 0.000678662320846542),
+		(b'j', 0.000674495096069414),
+		(b'q', 0.0006834248634489739),
+		(b'.', 0.009190218928130255),
+		(b'f', 0.01576223006057359),
+		(b'b', 0.009242904555669658),
+		(b'u', 0.019084698843595125),
+		(b'l', 0.02852167701031388),
+		(b'-', 0.0005447158101531455),
+		(b'p', 0.011613757794942775),
+		(b'x', 0.0011046122248515426),
+		(b'd', 0.03461177836317364),
+		(b'`', 0.0),
+		(b'g', 0.014890089446503251),
+		(b'o', 0.05609322677144261),
+		(b'y', 0.013385721301960083),
+		(b'!', 0.001168608891071721),
+		(b'h', 0.048529416142042835),
+		(b'c', 0.017713086574094743),
+		(b',', 0.011874209343513268),
+		(b':', 0.00030212379634177194),
+		(b'k', 0.005724278549210459),
+		(b's', 0.04759893438109271),
+		(b' ', 0.15389620633715825),
+		(b'?', 0.0009331606911639952),
+		(b'"', 0.0),
+		(b'r', 0.0432718667678707),
+		(b'e', 0.09266657736899288),
+		(b'n', 0.05374826985757021),
+		(b'm', 0.01737762497953595),
+		(b'\'', 0.0),
+		(b'i', 0.04891309848045125),
+		(b't', 0.06536470658272685),
+	].iter().cloned().collect();
+    let mut score = 0.0;
+    let sample_size = plaintext.len();
+    for key in pop_frequencies.keys() {
+        let observed = bytecount::count(plaintext, *key);
+        let observed_freq = observed as f64 / sample_size as f64;
+        let population_freq = pop_frequencies.get(key).unwrap();
+        score = score + ((observed_freq - population_freq).powi(2))/(population_freq + 0.000000000001);
+    }
+    score
+}
+
 
 fn score_potential_plaintext(plaintext: &[u8]) -> usize {
     let frequent_map: std::collections::HashMap<u8, usize> = [
