@@ -70,80 +70,76 @@ fn gen_chi2(source: &str) -> types::Result<()> {
 
 fn run_challenges() -> types::Result<()> {
     trace!("run_challenges()");
-    println!("Set 1 Challenge 1");
-    let buffer = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d")?;
-    let base64 = base64::encode(&buffer);
-    println!("{}", base64);
-
-    println!("Set 1 Challenge 2");
-    let buffer1 = hex::decode("1c0111001f010100061a024b53535009181c")?;
-    let buffer2 = hex::decode("686974207468652062756c6c277320657965")?;
-    let xored: Vec<u8> = buffer1
-        .iter()
-        .zip(buffer2.iter())
-        .map(|(x, y)| x ^ y)
-        .collect();
-    println!("{}", hex::encode(&xored));
-
-    println!("Set 1 Challenge 3");
-    let buffer =
-        hex::decode("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736")?;
-    let mut best_key = 0;
-    let mut best_count_of_common_english = 0;
-    let frequents = "etaoinshrdlu";
-    for key in 0..std::u8::MAX {
-        let xored: Vec<u8> = buffer.iter().map(|x| x ^ key).collect();
-        let mut count_of_common_english = 0;
-        for c in frequents.chars() {
-            count_of_common_english += bytecount::count(&xored, c as u8);
-        }
-        if count_of_common_english > best_count_of_common_english {
-            best_count_of_common_english = count_of_common_english;
-            best_key = key;
-        }
+    {
+        println!("Set 1 Challenge 1");
+        let buffer = hex::decode("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d")?;
+        let base64 = base64::encode(&buffer);
+        println!("{}", base64);
     }
-    let plaintext: Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
-    println!("{}", std::str::from_utf8(&plaintext)?);
 
-    println!("Set 1 Challenge 4");
-    use std::io::BufRead;
-    let file = std::fs::File::open("data/set1-challenge4.txt")
-        .chain_err(|| "Failed to open data/set1-challenge4.txt")?;
-    let file = std::io::BufReader::new(&file);
-    let mut best_plaintext = Vec::new();
-    let mut best_total_score = std::f64::MAX;
-    let mut plaintexts = Vec::new();
-    for line in file.lines().filter_map(std::io::Result::ok) {
+    {
+        println!("Set 1 Challenge 2");
+        let buffer1 = hex::decode("1c0111001f010100061a024b53535009181c")?;
+        let buffer2 = hex::decode("686974207468652062756c6c277320657965")?;
+        let xored: Vec<u8> = buffer1
+            .iter()
+            .zip(buffer2.iter())
+            .map(|(x, y)| x ^ y)
+            .collect();
+        println!("{}", hex::encode(&xored));
+    }
+
+    {
+        println!("Set 1 Challenge 3");
+        let buffer =
+            hex::decode("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736")?;
         let mut best_key = 0;
-        let mut best_score = std::f64::MAX;
+        let mut best_count_of_common_english = 0;
+        let frequents = "etaoinshrdlu";
         for key in 0..std::u8::MAX {
-            let plaintext: Vec<u8> = line.chars().map(|x| (x as u8) ^ key).collect();
-            let score = chi2_score_english(&plaintext);
-            if std::str::from_utf8(&plaintext).is_ok() {
-                debug!("{}", std::str::from_utf8(&plaintext)?);
+            let xored: Vec<u8> = buffer.iter().map(|x| x ^ key).collect();
+            let mut count_of_common_english = 0;
+            for c in frequents.chars() {
+                count_of_common_english += bytecount::count(&xored, c as u8);
             }
-            debug!("chi2 score is {}", score);
-
-            if score < best_score {
-                best_score = score;
+            if count_of_common_english > best_count_of_common_english {
+                best_count_of_common_english = count_of_common_english;
                 best_key = key;
             }
         }
         let plaintext: Vec<u8> = buffer.iter().map(|x| x ^ best_key).collect();
-        plaintexts.push((best_score, plaintext.clone()));
-        debug!("best score is {}", &best_score);
-        debug!("{}", std::str::from_utf8(&plaintext)?);
-        if best_score < best_total_score {
-            best_total_score = best_score;
-            best_plaintext = plaintext.clone();
-        }
+        println!("{}", std::str::from_utf8(&plaintext)?);
     }
 
-    println!("Best:\n{}", std::str::from_utf8(&best_plaintext)?);
-    println!("Top 20:");
-    plaintexts.sort_by(|&(x,_), &(y,_)| x.partial_cmp(&y).unwrap());
-    for text in plaintexts.iter().take(20) {
-        println!("{}", std::str::from_utf8(&text.1)?);
+    {
+        println!("Set 1 Challenge 4");
+        use std::io::BufRead;
+        let file = std::fs::File::open("data/set1-challenge4.txt")
+            .chain_err(|| "Failed to open data/set1-challenge4.txt")?;
+        let file = std::io::BufReader::new(&file);
+        let mut best_plaintext = Vec::new();
+        let mut best_total_score = std::f64::MAX;
+        for line in file.lines().filter_map(std::io::Result::ok) {
+            let buffer = hex::decode(line)?;
+            let mut best_key = 0;
+            let mut best_score = std::f64::MAX;
+            for key in 0..std::u8::MAX {
+                let plaintext: Vec<u8> = buffer.iter().map(|x| *x ^ key).collect();
+                let score = chi2_score_english(&plaintext);
+
+                if score < best_score {
+                    best_score = score;
+                    best_key = key;
+                }
+            }
+            let plaintext: Vec<u8> = buffer.iter().map(|x| *x ^ best_key).collect();
+            if best_score < best_total_score {
+                best_total_score = best_score;
+                best_plaintext = plaintext.clone();
+            }
+        }
+
+        println!("{}", std::str::from_utf8(&best_plaintext)?);
     }
 
     Ok(())
