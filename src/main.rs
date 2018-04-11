@@ -10,9 +10,9 @@ extern crate stderrlog;
 #[macro_use]
 extern crate clap;
 extern crate base64;
+extern crate bit_vec;
 extern crate bytecount;
 extern crate hex;
-extern crate bit_vec;
 
 mod cmdline;
 mod logging;
@@ -238,14 +238,9 @@ fn chi2_score_english(plaintext: &[u8]) -> f64 {
 fn hamming_distance(a: &[u8], b: &[u8]) -> usize {
     let a = bit_vec::BitVec::from_bytes(a);
     let b = bit_vec::BitVec::from_bytes(b);
-    let pairs = a.iter().zip(b.iter());
-    let mut count = 0;
-    for (x,y) in pairs {
-        if x != y {
-            count += 1;
-        }
-    }
-    count
+    a.iter()
+        .zip(b.iter())
+        .fold(0, |count, (x, y)| if x != y { count + 1 } else { count })
 }
 
 #[cfg(test)]
