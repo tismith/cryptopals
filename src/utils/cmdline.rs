@@ -1,5 +1,5 @@
 use clap;
-use types;
+use utils::types;
 
 pub fn parse_cmdline() -> types::Settings {
     let matches = clap::App::new(crate_name!())
@@ -30,6 +30,7 @@ pub fn parse_cmdline() -> types::Settings {
                 .arg(clap::Arg::with_name("source").required(true)),
         )
         .subcommand(clap::SubCommand::with_name("set1"))
+        .subcommand(clap::SubCommand::with_name("set2"))
         .get_matches();
 
     let verbosity = matches.occurrences_of("verbosity") as usize;
@@ -61,6 +62,7 @@ pub fn parse_cmdline() -> types::Settings {
             types::SubCommand::GenChi2(source.into())
         }
         ("set1", _) => types::SubCommand::Set1,
+        ("set2", _) => types::SubCommand::Set2,
         _ => types::SubCommand::None,
     };
 

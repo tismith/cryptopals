@@ -18,6 +18,7 @@ pub enum SubCommand {
     None,
     GenChi2(String),
     Set1,
+    Set2,
 }
 
 #[derive(Debug)]

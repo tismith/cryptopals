@@ -15,19 +15,17 @@ extern crate bytecount;
 extern crate hex;
 extern crate openssl;
 
-mod cmdline;
-mod logging;
-mod types;
-use types::*;
+mod utils;
 
+use error_chain::ChainedError; // trait which holds `display_chain`
+use utils::types::ResultExt; // trait for `chain_error`
 
 fn main() {
-    let mut config = cmdline::parse_cmdline();
+    let mut config = utils::cmdline::parse_cmdline();
     config.module_path = Some(module_path!().into());
-    logging::configure_logger(&config);
+    utils::logging::configure_logger(&config);
 
     if let Err(ref e) = run(&config) {
-        use error_chain::ChainedError; // trait which holds `display_chain`
         error!("{}", e.display_chain());
         ::std::process::exit(1);
     }
@@ -36,17 +34,18 @@ fn main() {
 // Most functions will return the `Result` type, imported from the
 // `types` module. It is a typedef of the standard `Result` type
 // for which the error type is always our own `Error`.
-fn run(config: &Settings) -> Result<()> {
+fn run(config: &utils::types::Settings) -> utils::types::Result<()> {
     trace!("run()");
 
     match config.subcommand {
-        types::SubCommand::None => Ok(()),
-        types::SubCommand::Set1 => run_set1(),
-        types::SubCommand::GenChi2(ref source) => gen_chi2(source),
+        utils::types::SubCommand::None => Ok(()),
+        utils::types::SubCommand::Set1 => run_set1(),
+        utils::types::SubCommand::Set2 => run_set2(),
+        utils::types::SubCommand::GenChi2(ref source) => gen_chi2(source),
     }
 }
 
-fn gen_chi2(source: &str) -> types::Result<()> {
+fn gen_chi2(source: &str) -> utils::types::Result<()> {
     use std::io::Read;
     trace!("gen_chi2()");
     let mut file = std::fs::File::open(source).chain_err(|| "Failed to open source file")?;
@@ -71,8 +70,13 @@ fn gen_chi2(source: &str) -> types::Result<()> {
     Ok(())
 }
 
-fn run_set1() -> types::Result<()> {
-    trace!("run_challenges()");
+fn run_set2() -> utils::types::Result<()> {
+    trace!("run_set2()");
+    Ok(())
+}
+
+fn run_set1() -> utils::types::Result<()> {
+    trace!("run_set1()");
     {
         println!("Set 1 Challenge 1");
         let buffer = hex::decode(
@@ -222,12 +226,12 @@ fn run_set1() -> types::Result<()> {
     }
 
     {
-		use openssl::symm::{Cipher, Mode, Crypter};
+        use openssl::symm::{Cipher, Crypter, Mode};
         use std::io::Read;
 
         println!("Set 1 Challenge 7");
 
-	    let key = b"YELLOW SUBMARINE";
+        let key = b"YELLOW SUBMARINE";
         let mut file = std::fs::File::open("data/set1-challenge7.txt")
             .chain_err(|| "Failed to open source file")?;
         let mut buffer = Vec::new();
@@ -236,23 +240,18 @@ fn run_set1() -> types::Result<()> {
         buffer.retain(|x| *x != b'\n');
         buffer = base64::decode(&buffer)?;
 
-		// Create a cipher context for encryption.
-		let mut encrypter = Crypter::new(
-			Cipher::aes_128_ecb(),
-			Mode::Decrypt,
-			key,
-			None).unwrap();
+        // Create a cipher context for encryption.
+        let mut encrypter = Crypter::new(Cipher::aes_128_ecb(), Mode::Decrypt, key, None).unwrap();
         //do my own padding
         encrypter.pad(false);
 
-		let block_size = Cipher::aes_128_ecb().block_size();
-		let mut ciphertext = vec![0; buffer.len() + block_size];
+        let block_size = Cipher::aes_128_ecb().block_size();
+        let mut ciphertext = vec![0; buffer.len() + block_size];
 
-		let mut count = encrypter.update(&buffer, &mut ciphertext).unwrap();
-		count += encrypter.finalize(&mut ciphertext[count..]).unwrap();
-		ciphertext.truncate(count);
+        let mut count = encrypter.update(&buffer, &mut ciphertext).unwrap();
+        count += encrypter.finalize(&mut ciphertext[count..]).unwrap();
+        ciphertext.truncate(count);
         println!("{}", std::str::from_utf8(&ciphertext)?);
-
     }
 
     {
@@ -271,7 +270,7 @@ fn run_set1() -> types::Result<()> {
             };
             //sort and dedup our chunks - repeated chunks will be stripped
             //by the dedup, so the shortest resultant vec is our winner!
-            let mut chunks : Vec<&[u8]> = buffer.chunks(16).collect();
+            let mut chunks: Vec<&[u8]> = buffer.chunks(16).collect();
             chunks.sort();
             chunks.dedup();
             let score = chunks.len();
