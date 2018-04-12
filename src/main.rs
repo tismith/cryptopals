@@ -17,6 +17,7 @@ extern crate openssl;
 
 mod utils;
 mod set1;
+mod set2;
 
 use error_chain::ChainedError; // trait which holds `display_chain`
 
@@ -40,11 +41,7 @@ fn run(config: &utils::types::Settings) -> utils::types::Result<()> {
     match config.subcommand {
         utils::types::SubCommand::None => Ok(()),
         utils::types::SubCommand::Set1 => set1::run_set1(),
-        utils::types::SubCommand::Set2 => run_set2(),
+        utils::types::SubCommand::Set2 => set2::run_set2(),
         utils::types::SubCommand::GenChi2(ref source) => set1::gen_chi2(source),
     }
-}
-
-fn run_set2() -> utils::types::Result<()> {
-    Ok(())
 }
