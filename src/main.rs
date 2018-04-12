@@ -167,7 +167,72 @@ fn run_set1() -> types::Result<()> {
             .chain_err(|| "Failed to open source file")?;
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
+        //strip newlines
+        buffer.retain(|x| *x != b'\n');
         buffer = base64::decode(&buffer)?;
+
+        //find repeating xor keysize
+        let mut average_hamming_by_keylen = Vec::new();
+        for key_len in 2..41 {
+            let mut total_distance = 0;
+            let mut previous = None;
+            //only consider the first 10 blocks
+            let num_blocks = 10;
+            for chunk in buffer.chunks(key_len).take(num_blocks) {
+                if let Some(previous) = previous {
+                    total_distance += hamming_distance(previous, chunk);
+                };
+                previous = Some(chunk);
+            }
+            let average_distance = total_distance as f64 / num_blocks as f64;
+            let normalized_distance = average_distance as f64 / key_len as f64;
+            trace!("Keysize {} has normalized_distance of {}",
+                   key_len, normalized_distance);
+
+            average_hamming_by_keylen.push((key_len, normalized_distance));
+        }
+        average_hamming_by_keylen
+            .sort_by(|&(_,a), &(_,b)| a.partial_cmp(&b).unwrap());
+
+        //debug:
+        debug!("Most likely key lengths are:");
+        for &(len, score) in average_hamming_by_keylen.iter().take(3) {
+            debug!("Keysize {} has normalized_distance of {}", len, score);
+        }
+
+        //transpose into key_len vectors
+        let key_len = average_hamming_by_keylen[0].0;
+        debug!("Trying key len {}", key_len);
+        let mut transposed = Vec::new();
+        for _ in 0..key_len {
+            transposed.push(Vec::new());
+        }
+        for chunk in buffer.chunks(key_len) {
+            for (i,b) in chunk.iter().enumerate() {
+                transposed[i].push(b.clone());
+            }
+        }
+
+        let mut cracked_key = Vec::new();
+        //now single-xor crack each transpose vector
+        for i in 0..key_len {
+            let mut best_key = 0;
+            let mut best_score = std::f64::MAX;
+            for key in 0..std::u8::MAX {
+                let plaintext = single_char_xor(&transposed[i], &key);
+                let score = chi2_score_english(&plaintext);
+
+                if score < best_score {
+                    best_score = score;
+                    best_key = key;
+                }
+            }
+            cracked_key.push(best_key);
+        }
+        println!("Cracked key is {}", std::str::from_utf8(&cracked_key)?);
+
+        //now we have cracked_key
+        println!("{}", std::str::from_utf8(&repeating_key_xor(&buffer, &cracked_key))?);
     }
 
     Ok(())
