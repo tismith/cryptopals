@@ -255,6 +255,37 @@ fn run_set1() -> types::Result<()> {
 
     }
 
+    {
+        use std::io::BufRead;
+
+        println!("Set 1 Challenge 8");
+        let file = std::fs::File::open("data/set1-challenge8.txt")
+            .chain_err(|| "Failed to open data/set1-challenge8.txt")?;
+        let file = std::io::BufReader::new(&file);
+        let mut best_line = String::new();
+        let mut best_score = std::usize::MAX;
+        for line in file.lines().filter_map(std::io::Result::ok) {
+            let buffer = match hex::decode(&line) {
+                Err(_) => continue,
+                Ok(b) => b,
+            };
+            //sort and dedup our chunks - repeated chunks will be stripped
+            //by the dedup, so the shortest resultant vec is our winner!
+            let mut chunks : Vec<&[u8]> = buffer.chunks(16).collect();
+            chunks.sort();
+            chunks.dedup();
+            let score = chunks.len();
+            if score < best_score {
+                debug!("New best score!: {}", score);
+                debug!("{}", &line);
+                best_score = score;
+                best_line = line.clone();
+            }
+        }
+
+        println!("{}", &best_line);
+    }
+
     Ok(())
 }
 
