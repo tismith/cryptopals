@@ -131,20 +131,10 @@ fn run_set1() -> types::Result<()> {
                 Err(_) => continue,
                 Ok(b) => b,
             };
-            let mut best_key = 0;
-            let mut best_score = std::f64::MAX;
-            for key in 0..std::u8::MAX {
-                let plaintext = single_char_xor(&buffer, &key);
-                let score = chi2_score_english(&plaintext);
-
-                if score < best_score {
-                    best_score = score;
-                    best_key = key;
-                }
-            }
-            let plaintext = single_char_xor(&buffer, &best_key);
-            if best_score < best_total_score {
-                best_total_score = best_score;
+            let (key, score) = crack_single_xor(&buffer);
+            let plaintext = single_char_xor(&buffer, &key);
+            if score < best_total_score {
+                best_total_score = score;
                 best_plaintext = plaintext.clone();
             }
         }
@@ -215,19 +205,8 @@ fn run_set1() -> types::Result<()> {
 
         let mut cracked_key = Vec::new();
         //now single-xor crack each transpose vector
-        for i in 0..key_len {
-            let mut best_key = 0;
-            let mut best_score = std::f64::MAX;
-            for key in 0..std::u8::MAX {
-                let plaintext = single_char_xor(&transposed[i], &key);
-                let score = chi2_score_english(&plaintext);
-
-                if score < best_score {
-                    best_score = score;
-                    best_key = key;
-                }
-            }
-            cracked_key.push(best_key);
+        for slice in &transposed {
+            cracked_key.push(crack_single_xor(slice).0);
         }
         println!("Cracked key is {}", std::str::from_utf8(&cracked_key)?);
 
@@ -322,6 +301,21 @@ fn hamming_distance(a: &[u8], b: &[u8]) -> usize {
     a.iter()
         .zip(b.iter())
         .fold(0, |count, (x, y)| count + (x != y) as usize)
+}
+
+fn crack_single_xor(encrypted: &[u8]) -> (u8, f64) {
+    let mut best_key = 0;
+    let mut best_score = std::f64::MAX;
+    for key in 0..std::u8::MAX {
+        let plaintext = single_char_xor(encrypted, &key);
+        let score = chi2_score_english(&plaintext);
+
+        if score < best_score {
+            best_score = score;
+            best_key = key;
+        }
+    }
+    (best_key, best_score)
 }
 
 #[cfg(test)]
