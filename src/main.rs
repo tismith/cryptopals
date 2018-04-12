@@ -19,6 +19,7 @@ mod logging;
 mod types;
 use types::*;
 
+
 fn main() {
     let mut config = cmdline::parse_cmdline();
     config.module_path = Some(module_path!().into());
@@ -176,13 +177,15 @@ fn run_set1() -> types::Result<()> {
             }
             let average_distance = total_distance as f64 / num_blocks as f64;
             let normalized_distance = average_distance as f64 / key_len as f64;
-            trace!("Keysize {} has normalized_distance of {}",
-                   key_len, normalized_distance);
+            trace!(
+                "Keysize {} has normalized_distance of {}",
+                key_len,
+                normalized_distance
+            );
 
             average_hamming_by_keylen.push((key_len, normalized_distance));
         }
-        average_hamming_by_keylen
-            .sort_by(|&(_,a), &(_,b)| a.partial_cmp(&b).unwrap());
+        average_hamming_by_keylen.sort_by(|&(_, a), &(_, b)| a.partial_cmp(&b).unwrap());
 
         //debug:
         debug!("Most likely key lengths are:");
@@ -198,7 +201,7 @@ fn run_set1() -> types::Result<()> {
             transposed.push(Vec::new());
         }
         for chunk in buffer.chunks(key_len) {
-            for (i,b) in chunk.iter().enumerate() {
+            for (i, b) in chunk.iter().enumerate() {
                 transposed[i].push(b.clone());
             }
         }
@@ -211,7 +214,10 @@ fn run_set1() -> types::Result<()> {
         println!("Cracked key is {}", std::str::from_utf8(&cracked_key)?);
 
         //now we have cracked_key
-        println!("{}", std::str::from_utf8(&repeating_key_xor(&buffer, &cracked_key))?);
+        println!(
+            "{}",
+            std::str::from_utf8(&repeating_key_xor(&buffer, &cracked_key))?
+        );
     }
 
     Ok(())
@@ -230,6 +236,7 @@ fn repeating_key_xor(plaintext: &[u8], key: &[u8]) -> Vec<u8> {
         .collect()
 }
 
+#[allow(unreadable_literal)]
 fn chi2_score_english(plaintext: &[u8]) -> f64 {
     //this came from the gen-chi2 subcommand
     let pop_frequencies: std::collections::HashMap<u8, f64> = [
