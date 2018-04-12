@@ -9,6 +9,7 @@ error_chain!{
         Utf8Error(::std::str::Utf8Error);
         Base64DecodeError(::base64::DecodeError);
         Io(::std::io::Error);
+        OpenSSL(::openssl::error::ErrorStack);
     }
 }
 

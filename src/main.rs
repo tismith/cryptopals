@@ -13,6 +13,7 @@ extern crate base64;
 extern crate bit_vec;
 extern crate bytecount;
 extern crate hex;
+extern crate openssl;
 
 mod cmdline;
 mod logging;
@@ -220,6 +221,40 @@ fn run_set1() -> types::Result<()> {
         );
     }
 
+    {
+		use openssl::symm::{Cipher, Mode, Crypter};
+        use std::io::Read;
+
+        println!("Set 1 Challenge 7");
+
+	    let key = b"YELLOW SUBMARINE";
+        let mut file = std::fs::File::open("data/set1-challenge7.txt")
+            .chain_err(|| "Failed to open source file")?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+        //strip newlines
+        buffer.retain(|x| *x != b'\n');
+        buffer = base64::decode(&buffer)?;
+
+		// Create a cipher context for encryption.
+		let mut encrypter = Crypter::new(
+			Cipher::aes_128_ecb(),
+			Mode::Decrypt,
+			key,
+			None).unwrap();
+        //do my own padding
+        encrypter.pad(false);
+
+		let block_size = Cipher::aes_128_ecb().block_size();
+		let mut ciphertext = vec![0; buffer.len() + block_size];
+
+		let mut count = encrypter.update(&buffer, &mut ciphertext).unwrap();
+		count += encrypter.finalize(&mut ciphertext[count..]).unwrap();
+		ciphertext.truncate(count);
+        println!("{}", std::str::from_utf8(&ciphertext)?);
+
+    }
+
     Ok(())
 }
 
@@ -236,7 +271,7 @@ fn repeating_key_xor(plaintext: &[u8], key: &[u8]) -> Vec<u8> {
         .collect()
 }
 
-#[allow(unreadable_literal)]
+//#[allow(unreadable_literal)]
 fn chi2_score_english(plaintext: &[u8]) -> f64 {
     //this came from the gen-chi2 subcommand
     let pop_frequencies: std::collections::HashMap<u8, f64> = [
