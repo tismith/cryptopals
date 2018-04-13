@@ -153,14 +153,15 @@ pub fn aes_128_ecb_decrypt(cryptotext: &[u8], key: &[u8]) -> utils::types::Resul
 pub fn aes_128_ecb_encrypt(cleartext: &[u8], key: &[u8]) -> utils::types::Result<Vec<u8>> {
     use openssl::symm::{Cipher, Crypter, Mode};
     // Create a cipher context for encryption.
-    let mut encrypter = Crypter::new(Cipher::aes_128_ecb(), Mode::Encrypt, key, None).unwrap();
+    let mut encrypter = Crypter::new(Cipher::aes_128_ecb(), Mode::Encrypt, key, None)?;
     //do my own padding
     encrypter.pad(false);
 
     let block_size = Cipher::aes_128_ecb().block_size();
-    let mut cryptotext = vec![0; cleartext.len() + block_size];
+    let padded = pkcs7_pad(cleartext, block_size);
+    let mut cryptotext = vec![0; padded.len() + block_size];
 
-    let mut count = encrypter.update(&cleartext, &mut cryptotext)?;
+    let mut count = encrypter.update(&padded, &mut cryptotext)?;
     count += encrypter.finalize(&mut cryptotext[count..])?;
     cryptotext.truncate(count);
     Ok(cryptotext)

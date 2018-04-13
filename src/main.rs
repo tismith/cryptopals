@@ -14,6 +14,7 @@ extern crate bit_vec;
 extern crate bytecount;
 extern crate hex;
 extern crate openssl;
+extern crate rand;
 
 mod utils;
 mod common;
