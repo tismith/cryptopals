@@ -8,10 +8,10 @@ use hex;
 
 pub fn read_base64_file(path: &str) -> utils::types::Result<Vec<u8>> {
     use std::io::Read;
-    let mut file = std::fs::File::open(path)
-        .chain_err(|| format!("Failed to open {}", path))?;
+    let mut file = std::fs::File::open(path).chain_err(|| format!("Failed to open {}", path))?;
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer).chain_err(|| "Failed to read file in memory")?;
+    file.read_to_end(&mut buffer)
+        .chain_err(|| "Failed to read file in memory")?;
     //strip newlines
     buffer.retain(|x| *x != b'\n');
     base64::decode(&buffer).chain_err(|| "Failed to base64 encode")
@@ -123,6 +123,17 @@ pub fn chi2_score_english(plaintext: &[u8]) -> f64 {
     score
 }
 
+pub fn pkcs7_pad(plaintext: &[u8], key_len: usize) -> Vec<u8> {
+    let mut padded = Vec::<u8>::from(plaintext);
+    let len = padded.len();
+    let padding = key_len - (len % key_len);
+    for _ in 0..padding {
+        padded.push(padding.clone() as u8);
+    }
+
+    padded
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -157,5 +168,12 @@ mod test {
         let one = b"this is a test";
         let two = b"wokka wokka!!!";
         assert_eq!(37, hamming_distance(one, two));
+    }
+
+    #[test]
+    fn test_pkcs7_pad() {
+        let plaintext = b"YELLOW SUBMARINE";
+        let known_good = b"YELLOW SUBMARINE\x04\x04\x04\x04";
+        assert_eq!(pkcs7_pad(plaintext, 20), known_good);
     }
 }

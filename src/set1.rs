@@ -110,8 +110,7 @@ pub fn run_set1() -> utils::types::Result<()> {
 
     {
         println!("Set 1 Challenge 6");
-        let buffer = common::read_base64_file(
-            "data/set1-challenge6.txt")?;
+        let buffer = common::read_base64_file("data/set1-challenge6.txt")?;
 
         //find repeating xor keysize
         let mut average_hamming_by_keylen = Vec::new();
