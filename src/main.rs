@@ -16,6 +16,7 @@ extern crate hex;
 extern crate openssl;
 
 mod utils;
+mod common;
 mod set1;
 mod set2;
 
