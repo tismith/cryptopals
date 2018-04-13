@@ -15,7 +15,10 @@ pub fn run_set2() -> utils::types::Result<()> {
 
     {
         println!("Set 2 Challenge 10");
-        let _buffer = common::read_base64_file("data/set2-challenge10.txt")?;
+        let key = b"YELLOW SUBMARINE";
+        let buffer = common::read_base64_file("data/set2-challenge10.txt")?;
+        let cleartext = common::aes_128_cbc_decrypt(&buffer, &[0;16], key)?;
+        println!("{}", std::str::from_utf8(&cleartext)?);
     }
 
     Ok(())

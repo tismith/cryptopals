@@ -171,25 +171,12 @@ pub fn run_set1() -> utils::types::Result<()> {
     }
 
     {
-        use openssl::symm::{Cipher, Crypter, Mode};
-
         println!("Set 1 Challenge 7");
 
         let key = b"YELLOW SUBMARINE";
         let buffer = common::read_base64_file("data/set1-challenge7.txt")?;
-
-        // Create a cipher context for encryption.
-        let mut encrypter = Crypter::new(Cipher::aes_128_ecb(), Mode::Decrypt, key, None).unwrap();
-        //do my own padding
-        encrypter.pad(false);
-
-        let block_size = Cipher::aes_128_ecb().block_size();
-        let mut ciphertext = vec![0; buffer.len() + block_size];
-
-        let mut count = encrypter.update(&buffer, &mut ciphertext).unwrap();
-        count += encrypter.finalize(&mut ciphertext[count..]).unwrap();
-        ciphertext.truncate(count);
-        println!("{}", std::str::from_utf8(&ciphertext)?);
+        let cleartext = common::aes_128_ecb_decrypt(&buffer, key)?;
+        println!("{}", std::str::from_utf8(&cleartext)?);
     }
 
     {
