@@ -128,7 +128,7 @@ pub fn pkcs7_pad(plaintext: &[u8], key_len: usize) -> Vec<u8> {
     let len = padded.len();
     let padding = key_len - (len % key_len);
     for _ in 0..padding {
-        padded.push(padding.clone() as u8);
+        padded.push(padding as u8);
     }
 
     padded
@@ -144,7 +144,7 @@ pub fn aes_128_ecb_decrypt(cryptotext: &[u8], key: &[u8]) -> utils::types::Resul
     let block_size = Cipher::aes_128_ecb().block_size();
     let mut cleartext = vec![0; cryptotext.len() + block_size];
 
-    let mut count = decrypter.update(&cryptotext, &mut cleartext)?;
+    let mut count = decrypter.update(cryptotext, &mut cleartext)?;
     count += decrypter.finalize(&mut cleartext[count..])?;
     cleartext.truncate(count);
     Ok(cleartext)
@@ -167,20 +167,28 @@ pub fn aes_128_ecb_encrypt(cleartext: &[u8], key: &[u8]) -> utils::types::Result
     Ok(cryptotext)
 }
 
-pub fn aes_128_cbc_decrypt(ciphertext: &[u8], iv: &[u8], key: &[u8]) -> utils::types::Result<Vec<u8>> {
+pub fn aes_128_cbc_decrypt(
+    ciphertext: &[u8],
+    iv: &[u8],
+    key: &[u8],
+) -> utils::types::Result<Vec<u8>> {
     let mut iv = iv.to_owned();
     let mut cleartext = Vec::new();
     for chunk in ciphertext.chunks(16) {
-        let mut block = aes_128_ecb_decrypt(&chunk, key)?;
+        let mut block = aes_128_ecb_decrypt(chunk, key)?;
         block = xor(&iv, &block);
-        iv = chunk.clone().to_vec();
+        iv = chunk.to_vec();
         cleartext.extend_from_slice(&block);
         //should pkcs#7 unpad?
     }
     Ok(cleartext)
 }
 
-pub fn aes_128_cbc_encrypt(ciphertext: &[u8], iv: &[u8], key: &[u8]) -> utils::types::Result<Vec<u8>> {
+pub fn aes_128_cbc_encrypt(
+    ciphertext: &[u8],
+    iv: &[u8],
+    key: &[u8],
+) -> utils::types::Result<Vec<u8>> {
     let mut iv = iv.to_owned();
     let mut cleartext = Vec::new();
     for chunk in ciphertext.chunks(16) {
