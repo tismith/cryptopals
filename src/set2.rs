@@ -91,7 +91,7 @@ pub fn run_set2() -> utils::types::Result<()> {
             //so we need to work out which block it is in (interested_block)
             //and then pad the input so that we can control where the
             //interest charater appears on a blocksize boundary (basically, it needs
-            //to appear at the start of a boundary)
+            //to appear at the end of a block)
             let input: Vec<u8> = lots_of_as
                 .iter()
                 .take(blocksize - (secret.len() % blocksize) - 1)
@@ -100,7 +100,7 @@ pub fn run_set2() -> utils::types::Result<()> {
             let interested_block = secret.len() / blocksize;
             let output = encryption_oracle2(&input)?;
             let output_block = output.chunks(blocksize).nth(interested_block).unwrap();
-            debug!("looking up {}", hex::encode(&output_block));
+            trace!("looking up {}", hex::encode(&output_block));
             let secret_char = dictionary.get(output_block);
             match secret_char {
                 None => {
