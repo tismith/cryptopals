@@ -4,6 +4,7 @@ use utils;
 use base64;
 //use utils::types::ResultExt;
 use common;
+use hex;
 
 pub fn run_set2() -> utils::types::Result<()> {
     {
@@ -47,7 +48,6 @@ pub fn run_set2() -> utils::types::Result<()> {
                 break;
             }
         }
-
         if let None = repeating_length {
             bail!("Couldn't find blocksize");
         }
@@ -61,16 +61,8 @@ pub fn run_set2() -> utils::types::Result<()> {
             EcbOrCbc::ECB => println!("Found ECB!"),
             EcbOrCbc::CBC => println!("Found CBC!"),
         }
-        //TODO
-        //create known vector with [b'A', blocksize-1]. Create dictionary
-        //of what different characters fill in e.g [b'A', blocksize-1] ++ A, B,etc
-        //feed [b'A', blocksize-1] into oracle, look up first block in dictionary
-        //know answer.
-        //Next byte use [b'A', blocksize-2] ++ secret[0], repeat for length of secret
-        //Might have to detect padding to know when to stop?
-        //Do I stop when I get a non-ascii?
+
         let mut secret = Vec::new();
-        let mut secret_count = 0;
         let plaintext_len = encryption_oracle2(b"")?.len();
         loop {
             let mut dictionary = std::collections::HashMap::new();
@@ -89,27 +81,22 @@ pub fn run_set2() -> utils::types::Result<()> {
                 debug!("inserting {} -> {}", hex::encode(&output), c as char);
                 dictionary.insert(output, c);
             }
-            let input : Vec<u8> = if secret_count < (blocksize - 1) {
-                lots_of_as.iter().take(blocksize - secret_count - 1).cloned().collect()
-            } else {
-                Vec::new()
-            };
-            let mut output = encryption_oracle2(&input)?;
-            output = output.iter().take(blocksize).cloned().collect();
-            use hex;
-            error!("Output block is {}", hex::encode(&output));
-            let secret_char = dictionary.get(&output);
+            let input : Vec<u8> = lots_of_as.iter().take(blocksize - (secret.len() % blocksize) - 1).cloned().collect();
+            let interested_block = secret.len() / blocksize;
+            let output = encryption_oracle2(&input)?;
+            let output_block = output.chunks(blocksize).nth(interested_block).unwrap();
+            debug!("looking up {}", hex::encode(&output_block));
+            let secret_char = dictionary.get(output_block);
             match secret_char {
                 None => {
-                    bail!("Couldn't find character after {} secrets", secret.len());
+                    //bail when I can't find any more characters in the dictionary
+                    break;
                 }
                 Some(secret_char) => {
-                    debug!("Secret so far is {}", std::str::from_utf8(&secret)?);
                     secret.push(*secret_char);
-                    secret_count += 1;
                 }
             }
-            if secret_count >= plaintext_len {
+            if secret.len() >= plaintext_len {
                 break;
             }
         }
