@@ -35,7 +35,7 @@ pub fn run_set2() -> utils::types::Result<()> {
     }
 
     {
-        println!("Set 2 Challenge 12");
+        println!("\nSet 2 Challenge 12");
         //block size discovery
         let mut block_size_discovery = vec![b'A', 1];
         let mut repeating_length = None;
@@ -67,8 +67,14 @@ pub fn run_set2() -> utils::types::Result<()> {
         loop {
             let mut dictionary = std::collections::HashMap::new();
             let lots_of_as = vec![b'A'; blocksize];
-            let mut block: Vec<u8> = secret.iter().rev()
-                .chain(lots_of_as.iter()).take(blocksize - 1).cloned().collect();
+            //take the last blocksize - 1 chars from secret, left padded with As
+            let mut block: Vec<u8> = secret
+                .iter()
+                .rev()
+                .chain(lots_of_as.iter())
+                .take(blocksize - 1)
+                .cloned()
+                .collect();
             block.reverse();
             trace!("block is {:?}", block);
             for c in 0..std::u8::MAX {
@@ -78,10 +84,19 @@ pub fn run_set2() -> utils::types::Result<()> {
                 trace!("this_block is {:?}", this_block);
                 let mut output = encryption_oracle2(&this_block)?;
                 output = output.iter().take(blocksize).cloned().collect();
-                debug!("inserting {} -> {}", hex::encode(&output), c as char);
+                trace!("inserting {} -> {}", hex::encode(&output), c as char);
                 dictionary.insert(output, c);
             }
-            let input : Vec<u8> = lots_of_as.iter().take(blocksize - (secret.len() % blocksize) - 1).cloned().collect();
+            //The interesting character is in the middle of the stream,
+            //so we need to work out which block it is in (interested_block)
+            //and then pad the input so that we can control where the
+            //interest charater appears on a blocksize boundary (basically, it needs
+            //to appear at the start of a boundary)
+            let input: Vec<u8> = lots_of_as
+                .iter()
+                .take(blocksize - (secret.len() % blocksize) - 1)
+                .cloned()
+                .collect();
             let interested_block = secret.len() / blocksize;
             let output = encryption_oracle2(&input)?;
             let output_block = output.chunks(blocksize).nth(interested_block).unwrap();
@@ -102,7 +117,6 @@ pub fn run_set2() -> utils::types::Result<()> {
         }
         println!("Secret is:\n{}", ::std::str::from_utf8(&secret)?);
         //lookup output in dictionary, and push into secret
-
     }
 
     Ok(())
@@ -146,7 +160,7 @@ fn encryption_oracle2(cleartext: &[u8]) -> utils::types::Result<Vec<u8>> {
                        aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq\
                        dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg\
                        YnkK";
-    let key = b"vnaskaclkAaskjc;"; //just mashed the keyboard
+    let key = b"vnaSkaclkAaskjc;"; //just mashed the keyboard
     let mut secret = base64::decode(base_secret)?;
     let mut plaintext = cleartext.to_vec();
     plaintext.append(&mut secret);
