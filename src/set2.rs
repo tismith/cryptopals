@@ -98,11 +98,14 @@ pub fn run_set2() -> utils::types::Result<()> {
                 .cloned()
                 .collect();
             let interested_block = secret.len() / blocksize;
-            let output = encryption_oracle2(&input)?;
-            let output_block = output.chunks(blocksize).nth(interested_block).unwrap();
-            trace!("looking up {}", hex::encode(&output_block));
-            let secret_char = dictionary.get(output_block);
-            match secret_char {
+            let mut output = encryption_oracle2(&input)?;
+            output = output
+                .chunks(blocksize)
+                .nth(interested_block)
+                .unwrap()
+                .to_vec();
+            trace!("looking up {}", hex::encode(&output));
+            match dictionary.get(&output) {
                 None => {
                     //bail when I can't find any more characters in the dictionary
                     break;
