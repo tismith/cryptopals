@@ -127,11 +127,11 @@ pub fn run_set2() -> utils::types::Result<()> {
 
 fn encryption_oracle(cleartext: &[u8]) -> utils::types::Result<(Vec<u8>, EcbOrCbc)> {
     use rand::{Rng, distributions::IndependentSample};
-    let mut key = vec![0u8; 16];
     let mut rng = rand::thread_rng();
-    rng.fill_bytes(&mut key);
-    let num_prepend = rand::distributions::Range::new(5, 11).ind_sample(&mut rng);
-    let num_append = rand::distributions::Range::new(5, 11).ind_sample(&mut rng);
+    let key : [u8; 16] = rand::random();
+    let range = rand::distributions::Range::new(5, 11);
+    let num_prepend = range.ind_sample(&mut rng);
+    let num_append = range.ind_sample(&mut rng);
     let mut plaintext = vec![0u8; num_prepend];
     rng.fill_bytes(&mut plaintext);
     plaintext.extend_from_slice(cleartext);
@@ -139,7 +139,7 @@ fn encryption_oracle(cleartext: &[u8]) -> utils::types::Result<(Vec<u8>, EcbOrCb
     rng.fill_bytes(&mut footer);
     plaintext.append(&mut footer);
 
-    if rng.gen::<bool>() {
+    if rand::random::<bool>() {
         //ECB
         trace!("Chose ECB");
         Ok((
