@@ -48,7 +48,7 @@ pub fn run_set2() -> utils::types::Result<()> {
                 break;
             }
         }
-        if let None = repeating_length {
+        if repeating_length.is_none() {
             bail!("Couldn't find blocksize");
         }
         let blocksize = repeating_length.unwrap();
@@ -66,16 +66,7 @@ pub fn run_set2() -> utils::types::Result<()> {
         let plaintext_len = encryption_oracle2(b"")?.len();
         loop {
             let mut dictionary = std::collections::HashMap::new();
-            let lots_of_as = vec![b'A'; blocksize];
-            //take the last blocksize - 1 chars from secret, left padded with As
-            let mut block: Vec<u8> = secret
-                .iter()
-                .rev()
-                .chain(lots_of_as.iter())
-                .take(blocksize - 1)
-                .cloned()
-                .collect();
-            block.reverse();
+            let block = last_n_bytes_left_padded(&secret, blocksize - 1);
             trace!("block is {:?}", block);
             for c in 0..std::u8::MAX {
                 //build up dictionary
@@ -92,6 +83,7 @@ pub fn run_set2() -> utils::types::Result<()> {
             //and then pad the input so that we can control where the
             //interest charater appears on a blocksize boundary (basically, it needs
             //to appear at the end of a block)
+            let lots_of_as = vec![b'A'; blocksize];
             let input: Vec<u8> = lots_of_as
                 .iter()
                 .take(blocksize - (secret.len() % blocksize) - 1)
@@ -125,10 +117,24 @@ pub fn run_set2() -> utils::types::Result<()> {
     Ok(())
 }
 
+fn last_n_bytes_left_padded(buffer: &[u8], size: usize) -> Vec<u8> {
+    let lots_of_as = vec![b'A'; size];
+    //take the last blocksize - 1 chars from secret, left padded with As
+    let mut block: Vec<u8> = buffer
+        .iter()
+        .rev()
+        .chain(lots_of_as.iter())
+        .take(size)
+        .cloned()
+        .collect();
+    block.reverse();
+    block
+}
+
 fn encryption_oracle(cleartext: &[u8]) -> utils::types::Result<(Vec<u8>, EcbOrCbc)> {
     use rand::{Rng, distributions::IndependentSample};
     let mut rng = rand::thread_rng();
-    let key : [u8; 16] = rand::random();
+    let key: [u8; 16] = rand::random();
     let range = rand::distributions::Range::new(5, 11);
     let num_prepend = range.ind_sample(&mut rng);
     let num_append = range.ind_sample(&mut rng);
