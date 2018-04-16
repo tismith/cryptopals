@@ -114,6 +114,10 @@ pub fn run_set2() -> utils::types::Result<()> {
         //lookup output in dictionary, and push into secret
     }
 
+    {
+        println!("Set 2 Challenge 13");
+    }
+
     Ok(())
 }
 
@@ -196,15 +200,40 @@ fn detect_ecb_or_cbc(cryptotext: &[u8]) -> EcbOrCbc {
     }
 }
 
+fn parse_kv_query(query: &str) -> utils::types::Result<std::collections::HashMap<String, String>>{
+    let mut decoded = std::collections::HashMap::new();
+    for kv in query.split('&') {
+        let k_v : Vec<&str> = kv.split('=').collect();
+        if k_v.len() != 2 {
+            bail!(format!("Invalid kv of {}", kv));
+        }
+        let k = k_v[0];
+        let v = k_v[1];
+        decoded.insert(k.to_string(), v.to_string());
+    }
+    Ok(decoded)
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     #[test]
     fn test_detect_ecb_or_cbc() {
-        (0..10).for_each(|| {
+        (0..10).for_each(|_| {
             let buffer = vec![b'X'; 100];
             let (cryptotext, mode) = encryption_oracle(&buffer).unwrap();
             assert_eq!(detect_ecb_or_cbc(&cryptotext), mode);
         })
+    }
+
+    #[test]
+    fn test_parse_kv_query() {
+        let test_query = "foo=bar&baz=qux&zap=zazzle";
+        let output = parse_kv_query(test_query).unwrap();
+        let mut expected = std::collections::HashMap::new();
+        expected.insert("foo".to_string(), "bar".to_string());
+        expected.insert("baz".to_string(), "qux".to_string());
+        expected.insert("zap".to_string(), "zazzle".to_string());
+        assert_eq!(output, expected);
     }
 }
