@@ -116,9 +116,49 @@ pub fn run_set2() -> utils::types::Result<()> {
 
     {
         println!("Set 2 Challenge 13");
+        //part A
+        //Encrypt the encoded user profile under the key
+        //"provide" that to the "attacker".
+        let key: [u8; 16] = rand::random();
+        println!("user is toby@tismith.id.au");
+        let crypted = encrypt_profile("toby@tismith.id.au", &key)?;
+
+        //part B
+        //Decrypt the encoded user profile and parse it.
+        let decrypted = common::aes_128_ecb_decrypt(&crypted, &key)?;
+        let parsed = parse_kv_query(std::str::from_utf8(&decrypted)?)?;
+        let role = parsed.get("role").unwrap();
+        println!("role is {}", &role);
+
+        //Now to create an encrypted profile where role=admin, using only
+        //profile_for and encrypt_profile
     }
 
     Ok(())
+}
+
+fn encrypt_profile(email: &str, key: &[u8]) -> utils::types::Result<Vec<u8>> {
+    let profile = profile_for(email);
+    Ok(common::aes_128_ecb_encrypt(&profile.as_bytes(), key)?)
+}
+
+fn parse_kv_query(query: &str) -> utils::types::Result<std::collections::HashMap<String, String>> {
+    let mut decoded = std::collections::HashMap::new();
+    for kv in query.split('&') {
+        let k_v: Vec<&str> = kv.split('=').collect();
+        if k_v.len() != 2 {
+            bail!(format!("Invalid kv of {}", kv));
+        }
+        let k = k_v[0];
+        let v = k_v[1];
+        decoded.insert(k.to_string(), v.to_string());
+    }
+    Ok(decoded)
+}
+
+fn profile_for(email: &str) -> String {
+    let sanitized = email.replace("&", "").replace("=", "");
+    format!("email={}&uid=10&role=user", sanitized)
 }
 
 fn last_n_bytes_left_padded(buffer: &[u8], size: usize) -> Vec<u8> {
@@ -198,20 +238,6 @@ fn detect_ecb_or_cbc(cryptotext: &[u8]) -> EcbOrCbc {
     } else {
         EcbOrCbc::CBC
     }
-}
-
-fn parse_kv_query(query: &str) -> utils::types::Result<std::collections::HashMap<String, String>>{
-    let mut decoded = std::collections::HashMap::new();
-    for kv in query.split('&') {
-        let k_v : Vec<&str> = kv.split('=').collect();
-        if k_v.len() != 2 {
-            bail!(format!("Invalid kv of {}", kv));
-        }
-        let k = k_v[0];
-        let v = k_v[1];
-        decoded.insert(k.to_string(), v.to_string());
-    }
-    Ok(decoded)
 }
 
 #[cfg(test)]
