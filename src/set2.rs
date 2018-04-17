@@ -120,7 +120,7 @@ pub fn run_set2() -> utils::types::Result<()> {
         //Encrypt the encoded user profile under the key
         //"provide" that to the "attacker".
         let key: [u8; 16] = rand::random();
-        println!("user is toby@tismith.id.au");
+        println!("legit user is toby@tismith.id.au");
         let crypted = encrypt_profile("toby@tismith.id.au", &key)?;
 
         //part B
@@ -128,10 +128,38 @@ pub fn run_set2() -> utils::types::Result<()> {
         let decrypted = common::aes_128_ecb_decrypt(&crypted, &key)?;
         let parsed = parse_kv_query(std::str::from_utf8(&decrypted)?)?;
         let role = parsed.get("role").unwrap();
-        println!("role is {}", &role);
+        println!("legit role is {}", &role);
 
-        //Now to create an encrypted profile where role=admin, using only
-        //profile_for and encrypt_profile
+        //form the AES block encrypted of "admin......." where .. is the
+        //pkcs#7 padding
+        trace!("making fake admin block");
+        //need to be long enough to get 'admin' to appear at the start of a
+        //block, and then pkcs#7 pad the rest of the second block
+        let admin_input = common::pkcs7_pad(b"1234567890admin", 32);
+        let admin_crypt = encrypt_profile(&std::str::from_utf8(&admin_input)?, &key)?;
+        let admin = admin_crypt[16..32].to_vec();
+        //up to the role in the plain text we have
+        //email={}&uid=10&role={}
+        //i.e 19 characters, so to get the role= to end on a block boundary
+        //I need an email address of 32-19 = 13 characters
+
+        trace!("making fake profile blocks");
+        let email = "123456789@123";
+        let legit = encrypt_profile(&email, &key)?;
+        let mut forged : Vec<u8> = legit[0..32].to_vec();
+
+        trace!("copying and pasting the bits together");
+        forged.append(&mut admin.to_owned());
+
+        //part B
+        //Decrypt the encoded user profile and parse it.
+        let decrypted2 = common::aes_128_ecb_decrypt(&forged, &key)?;
+        println!("decrypted is {}", &std::str::from_utf8(&decrypted2)?);
+        let parsed2 = parse_kv_query(std::str::from_utf8(&decrypted2)?)?;
+        println!("forged profile is ");
+        for (k,v) in &parsed2 {
+            println!("{} = {}", k, v);
+        }
     }
 
     Ok(())
