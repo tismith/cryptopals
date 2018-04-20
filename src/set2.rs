@@ -160,68 +160,125 @@ pub fn run_set2() -> utils::types::Result<()> {
         for (k,v) in &parsed2 {
             println!("{} = {}", k, v);
         }
+    }
 
-        {
-            use rand::Rng;
-            println!("Set Challenge 14");
+    {
+        use rand::Rng;
+        println!("Set Challenge 14");
 
-            let mut rng = rand::thread_rng();
-            let random_count : usize = rand::random::<usize>() % 100;
-            let mut random_bytes = vec![0u8; random_count];
-            rng.fill_bytes(&mut random_bytes);
+        let mut rng = rand::thread_rng();
+        let random_count : usize = rand::random::<usize>() % 100;
+        let mut random_bytes = vec![0u8; random_count];
+        rng.fill_bytes(&mut random_bytes);
 
-            //find an prefix and an offset into the output
-            //that lets us skip over the prefix
+        //find an prefix and an offset into the output
+        //that lets us skip over the prefix
 
-            //first, find what the key encrypts a block of 'A' to
-            let output = encryption_oracle3(&random_bytes, &[b'A'; 100])?;
-            debug!("collecting chunks by count");
-            let chunks : Vec<_> = output.chunks(16).collect();
-            let mut chunk_count = std::collections::HashMap::new();
-            for chunk in &chunks {
-                let current_count = *chunk_count.get(chunk).unwrap_or(&0);
-                chunk_count.insert(chunk, current_count + 1);
-            }
-            debug!("about to look for largest counted block");
-            let base = vec![0u8; 16];
-            let (k, v) : (&[u8], _) = chunk_count
-                .iter()
-                .fold((&base, &0), |(ko, vo), (k, v)| {
-                    if v > vo {
-                        (k, v)
-                    } else {
-                        (ko, vo)
-                    }
-            });
-            debug!("Highest scoring block was:\n{:?} = {}", k, v);
-
-            let mut index = 0;
-            let mut chunk_index = 0;
-            for i in 0..100 {
-                index = i;
-                let trial_padding = vec![b'A'; i];
-                let output = encryption_oracle3(&random_bytes, &trial_padding)?;
-                let mut found_chunk = false;
-                let chunks : Vec<_> = output.chunks(16).collect();
-                chunk_index = 0;
-                for chunk in &chunks {
-                    if chunk == &k {
-                        found_chunk = true;
-                        break;
-                    }
-                    chunk_index += 1;
+        //first, find what the key encrypts a block of 'A' to
+        let output = encryption_oracle3(&random_bytes, &[b'A'; 100])?;
+        debug!("collecting chunks by count");
+        let chunks : Vec<_> = output.chunks(16).collect();
+        let mut chunk_count = std::collections::HashMap::new();
+        for chunk in &chunks {
+            let current_count = *chunk_count.get(chunk).unwrap_or(&0);
+            chunk_count.insert(chunk, current_count + 1);
+        }
+        debug!("about to look for largest counted block");
+        let base = vec![0u8; 16];
+        let (k, v) : (&[u8], _) = chunk_count
+            .iter()
+            .fold((&base, &0), |(ko, vo), (k, v)| {
+                if v > vo {
+                    (k, v)
+                } else {
+                    (ko, vo)
                 }
-                if found_chunk {
+        });
+        debug!("Highest scoring block was:\n{:?} = {}", k, v);
+
+        let mut index = 0;
+        let mut chunk_index = 0;
+        for i in 0..100 {
+            index = i;
+            let trial_padding = vec![b'A'; i];
+            let output = encryption_oracle3(&random_bytes, &trial_padding)?;
+            let mut found_chunk = false;
+            let chunks : Vec<_> = output.chunks(16).collect();
+            chunk_index = 0;
+            for chunk in &chunks {
+                if chunk == &k {
+                    found_chunk = true;
                     break;
                 }
+                chunk_index += 1;
             }
-            debug!("index is {}, chunk_index is {}", index, chunk_index);
-            //so now I know that with index As at the start, I get a known
-            //block at index chunk_index.
-            //I.e. I just need to start all plaintext with index As and skip
-            //over chunk_index blocks of the output.
-
+            if found_chunk {
+                break;
+            }
         }
+        debug!("index is {}, chunk_index is {}", index, chunk_index);
+        //so now I know that with index As at the start, I get a known
+        //block at index chunk_index.
+        //I.e. I just need to start all plaintext with index As and skip
+        //over chunk_index blocks of the output.
+
+        let prefix_as = vec![b'A'; index];
+
+        //now just do challenge 12 with those offsets
+        let mut secret = Vec::new();
+        let blocksize = 16;
+        loop {
+            let mut dictionary = std::collections::HashMap::new();
+            let block = last_n_bytes_left_padded(&secret, blocksize - 1);
+            trace!("block is {:?}", block);
+            for c in 0..std::u8::MAX {
+                //build up dictionary
+                let mut this_block = block.clone();
+                this_block.push(c);
+                trace!("this_block is {:?}", this_block);
+                let mut input = prefix_as.clone();
+                input.append(&mut this_block);
+                let mut output = encryption_oracle3(&random_bytes, &input)?;
+                output = output[((chunk_index + 1) * 16)..].to_vec();
+                output = output.iter().take(blocksize).cloned().collect();
+                trace!("inserting {} -> {}", hex::encode(&output), c as char);
+                dictionary.insert(output, c);
+            }
+            //The interesting character is in the middle of the stream,
+            //so we need to work out which block it is in (interested_block)
+            //and then pad the input so that we can control where the
+            //interest charater appears on a blocksize boundary (basically, it needs
+            //to appear at the end of a block)
+            let lots_of_as = vec![b'A'; blocksize];
+            let mut input: Vec<u8> = lots_of_as
+                .iter()
+                .take(blocksize - (secret.len() % blocksize) - 1)
+                .cloned()
+                .collect();
+            let interested_block = secret.len() / blocksize;
+            let mut input_padded = prefix_as.clone();
+            input_padded.append(&mut input);
+            let mut output = encryption_oracle3(&random_bytes, &input_padded)?;
+            output = output[((chunk_index + 1) * 16)..].to_vec();
+            output = output
+                .chunks(blocksize)
+                .nth(interested_block)
+                .unwrap()
+                .to_vec();
+            trace!("looking up {}", hex::encode(&output));
+            match dictionary.get(&output) {
+                None => {
+                    //bail when I can't find any more characters in the dictionary
+                    break;
+                }
+                Some(secret_char) => {
+                    debug!("Adding secret {}", secret_char);
+                    secret.push(*secret_char);
+                }
+            }
+        }
+        println!("Secret is:\n{}", ::std::str::from_utf8(&secret)?);
+        //lookup output in dictionary, and push into secret
     }
 
     Ok(())
