@@ -127,7 +127,7 @@ pub fn run_set2() -> utils::types::Result<()> {
         //Decrypt the encoded user profile and parse it.
         let decrypted = common::aes_128_ecb_decrypt(&crypted, &key)?;
         let parsed = parse_kv_query(std::str::from_utf8(&decrypted)?)?;
-        let role = parsed.get("role").unwrap();
+        let role = &parsed["role"];
         println!("legit role is {}", &role);
 
         //form the AES block encrypted of "admin......." where .. is the
@@ -136,7 +136,7 @@ pub fn run_set2() -> utils::types::Result<()> {
         //need to be long enough to get 'admin' to appear at the start of a
         //block, and then pkcs#7 pad the rest of the second block
         let admin_input = common::pkcs7_pad(b"1234567890admin", 32);
-        let admin_crypt = encrypt_profile(&std::str::from_utf8(&admin_input)?, &key)?;
+        let admin_crypt = encrypt_profile(std::str::from_utf8(&admin_input)?, &key)?;
         let admin = admin_crypt[16..32].to_vec();
         //up to the role in the plain text we have
         //email={}&uid=10&role={}
@@ -145,7 +145,7 @@ pub fn run_set2() -> utils::types::Result<()> {
 
         trace!("making fake profile blocks");
         let email = "123456789@123";
-        let legit = encrypt_profile(&email, &key)?;
+        let legit = encrypt_profile(email, &key)?;
         let mut forged : Vec<u8> = legit[0..32].to_vec();
 
         trace!("copying and pasting the bits together");
@@ -160,6 +160,68 @@ pub fn run_set2() -> utils::types::Result<()> {
         for (k,v) in &parsed2 {
             println!("{} = {}", k, v);
         }
+
+        {
+            use rand::Rng;
+            println!("Set Challenge 14");
+
+            let mut rng = rand::thread_rng();
+            let random_count : usize = rand::random::<usize>() % 100;
+            let mut random_bytes = vec![0u8; random_count];
+            rng.fill_bytes(&mut random_bytes);
+
+            //find an prefix and an offset into the output
+            //that lets us skip over the prefix
+
+            //first, find what the key encrypts a block of 'A' to
+            let output = encryption_oracle3(&random_bytes, &[b'A'; 100])?;
+            debug!("collecting chunks by count");
+            let chunks : Vec<_> = output.chunks(16).collect();
+            let mut chunk_count = std::collections::HashMap::new();
+            for chunk in &chunks {
+                let current_count = *chunk_count.get(chunk).unwrap_or(&0);
+                chunk_count.insert(chunk, current_count + 1);
+            }
+            debug!("about to look for largest counted block");
+            let base = vec![0u8; 16];
+            let (k, v) : (&[u8], _) = chunk_count
+                .iter()
+                .fold((&base, &0), |(ko, vo), (k, v)| {
+                    if v > vo {
+                        (k, v)
+                    } else {
+                        (ko, vo)
+                    }
+            });
+            debug!("Highest scoring block was:\n{:?} = {}", k, v);
+
+            let mut index = 0;
+            let mut chunk_index = 0;
+            for i in 0..100 {
+                index = i;
+                let trial_padding = vec![b'A'; i];
+                let output = encryption_oracle3(&random_bytes, &trial_padding)?;
+                let mut found_chunk = false;
+                let chunks : Vec<_> = output.chunks(16).collect();
+                chunk_index = 0;
+                for chunk in &chunks {
+                    if chunk == &k {
+                        found_chunk = true;
+                        break;
+                    }
+                    chunk_index += 1;
+                }
+                if found_chunk {
+                    break;
+                }
+            }
+            debug!("index is {}, chunk_index is {}", index, chunk_index);
+            //so now I know that with index As at the start, I get a known
+            //block at index chunk_index.
+            //I.e. I just need to start all plaintext with index As and skip
+            //over chunk_index blocks of the output.
+
+        }
     }
 
     Ok(())
@@ -167,7 +229,7 @@ pub fn run_set2() -> utils::types::Result<()> {
 
 fn encrypt_profile(email: &str, key: &[u8]) -> utils::types::Result<Vec<u8>> {
     let profile = profile_for(email);
-    Ok(common::aes_128_ecb_encrypt(&profile.as_bytes(), key)?)
+    Ok(common::aes_128_ecb_encrypt(profile.as_bytes(), key)?)
 }
 
 fn parse_kv_query(query: &str) -> utils::types::Result<std::collections::HashMap<String, String>> {
@@ -245,6 +307,20 @@ fn encryption_oracle2(cleartext: &[u8]) -> utils::types::Result<Vec<u8>> {
     let mut secret = base64::decode(base_secret)?;
     let mut plaintext = cleartext.to_vec();
     plaintext.append(&mut secret);
+    Ok(common::aes_128_ecb_encrypt(&plaintext, key)?)
+}
+
+fn encryption_oracle3(prefix: &[u8], cleartext: &[u8]) -> utils::types::Result<Vec<u8>> {
+    let base_secret = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg\
+                       aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq\
+                       dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg\
+                       YnkK";
+    let key = b"vnaSkaclkAaskjc;"; //just mashed the keyboard
+    let mut plaintext = Vec::new();
+    let secret = base64::decode(base_secret)?;
+    plaintext.extend_from_slice(prefix);
+    plaintext.extend_from_slice(cleartext);
+    plaintext.extend_from_slice(&secret);
     Ok(common::aes_128_ecb_encrypt(&plaintext, key)?)
 }
 
