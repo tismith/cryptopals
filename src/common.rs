@@ -193,7 +193,7 @@ pub fn aes_128_cbc_encrypt(
     let mut cleartext = Vec::new();
     for chunk in ciphertext.chunks(16) {
         let mut block = xor(&iv, &pkcs7_pad(chunk, 16));
-        block = aes_128_ecb_decrypt(&block, key)?;
+        block = aes_128_ecb_encrypt(&block, key)?;
         iv = block.clone();
         cleartext.extend_from_slice(&block);
     }

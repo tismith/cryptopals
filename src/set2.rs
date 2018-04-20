@@ -287,7 +287,21 @@ pub fn run_set2() -> utils::types::Result<()> {
 
     }
 
+    {
+        println!("Set 2 Challenge 16");
+        let key : [u8; 16] = rand::random();
+    }
+
     Ok(())
+}
+
+fn encryption_oracle4(plaintext: &[u8], key: &[u8]) -> utils::types::Result<Vec<u8>> {
+    let prefix = b"comment1=cooking%20MCs;userdata=";
+    let suffix = b";comment2=%20like%20a%20pound%20of%20bacon";
+    let mut santitized = plaintext.to_vec();
+    santitized.retain(|&x| x != b';' || x != b'=');
+    //this will do pkcs#7 padding for me
+    Ok(common::aes_128_cbc_encrypt(&[0u8; 16], &santitized, key)?)
 }
 
 fn encrypt_profile(email: &str, key: &[u8]) -> utils::types::Result<Vec<u8>> {
