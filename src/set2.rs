@@ -281,6 +281,12 @@ pub fn run_set2() -> utils::types::Result<()> {
         //lookup output in dictionary, and push into secret
     }
 
+    {
+        println!("Set 2 Challenge 15");
+        println!("{}", std::str::from_utf8(&strip_pkcs7_padding(b"ICE ICE BABY\x04\x04\x04\x04")?)?);
+
+    }
+
     Ok(())
 }
 
@@ -401,9 +407,58 @@ fn detect_ecb_or_cbc(cryptotext: &[u8]) -> EcbOrCbc {
     }
 }
 
+fn strip_pkcs7_padding(plaintext: &[u8]) -> utils::types::Result<Vec<u8>> {
+    let blocksize = 16;
+    if plaintext.len() % blocksize != 0 {
+        bail!("Invalid padding - not padded");
+    }
+    let last_chunk = plaintext.chunks(blocksize).last().unwrap();
+    let padding_char = *last_chunk.iter().last().unwrap();
+    if padding_char > blocksize as u8 {
+        //this isn't a pkcs#7 padding character
+        return Ok(plaintext.to_vec());
+    }
+    let mut expected_padding = padding_char;
+    for ch in last_chunk.iter().rev() {
+        if *ch == padding_char {
+            if expected_padding <= 0 {
+                bail!("Invalid padding - too many padding");
+            }
+            expected_padding -= 1;
+        } else if expected_padding == 0 {
+            return Ok(plaintext[..(plaintext.len() - padding_char as usize)].to_vec());
+        } else {
+            bail!("Invalid padding - incorrect padding");
+        }
+    }
+    bail!("Invalid padding");
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_strip_pkcs7_padding () {
+        let test1 = b"0123456789\x06\x06\x06\x06\x06\x06";
+        let stripped = strip_pkcs7_padding(test1).unwrap();
+        assert_eq!(stripped, b"0123456789");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_strip_pkcs7_padding_error_incrementing () {
+        let test1 = b"0123456789\x01\x02\x03\x04\x05\x06";
+        let _ = strip_pkcs7_padding(test1).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_strip_pkcs7_padding_error_incorrect () {
+        let test1 = b"0123456789\x01\x01\x01\x01\x01\x01";
+        let _ = strip_pkcs7_padding(test1).unwrap();
+    }
+
     #[test]
     fn test_detect_ecb_or_cbc() {
         (0..10).for_each(|_| {
