@@ -26,7 +26,7 @@ pub fn run_set2() -> utils::types::Result<()> {
 
     {
         println!("Set 2 Challenge 11");
-        let buffer = vec![b'X'; 40];
+        let buffer = vec![b'X'; 100];
         let (cryptotext, mode) = encryption_oracle(&buffer)?;
         match detect_ecb_or_cbc(&cryptotext) {
             EcbOrCbc::ECB => println!("Was {:?}, found ECB!", mode),

@@ -215,13 +215,26 @@ pub fn aes_128_cbc_encrypt(
     iv: &[u8],
     key: &[u8],
 ) -> utils::types::Result<Vec<u8>> {
+    use openssl::symm::{Cipher, Crypter, Mode};
     let mut iv = iv.to_owned();
     let mut ciphertext = Vec::new();
+    let plaintext = pkcs7_pad(plaintext, key.len());
     for chunk in plaintext.chunks(16) {
         let mut block = xor(&iv, chunk);
-        block = aes_128_ecb_encrypt(&block, key)?;
-        iv = block.clone();
-        ciphertext.extend_from_slice(&block);
+
+        let mut encrypter = Crypter::new(Cipher::aes_128_ecb(), Mode::Encrypt, key, None)?;
+        //do my own padding
+        encrypter.pad(false);
+
+        let block_size = Cipher::aes_128_ecb().block_size();
+        let mut cryptotext = vec![0; plaintext.len() + block_size];
+
+        let mut count = encrypter.update(&block, &mut cryptotext)?;
+        count += encrypter.finalize(&mut cryptotext[count..])?;
+        cryptotext.truncate(count);
+
+        iv = cryptotext.clone();
+        ciphertext.extend_from_slice(&cryptotext);
     }
     Ok(ciphertext)
 }
@@ -288,5 +301,16 @@ mod test {
     fn test_strip_pkcs7_padding_error_incorrect() {
         let test1 = b"0123456789\x01\x01\x01\x01\x01\x01";
         let _ = strip_pkcs7_padding(test1).unwrap();
+    }
+
+    #[test]
+    fn test_aes_cbc() {
+        use rand;
+        let plaintext = b"I\'ve seen fire and I\'ve seen rain";
+        let iv: [u8; 16] = rand::random();
+        let key: [u8; 16] = rand::random();
+        let ciphertext = aes_128_cbc_encrypt(plaintext, &iv, &key).unwrap();
+        let output = aes_128_cbc_decrypt(&ciphertext, &iv, &key).unwrap();
+        assert_eq!(std::str::from_utf8(&output), std::str::from_utf8(plaintext));
     }
 }
