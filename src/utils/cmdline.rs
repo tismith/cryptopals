@@ -31,6 +31,7 @@ pub fn parse_cmdline() -> types::Settings {
         )
         .subcommand(clap::SubCommand::with_name("set1"))
         .subcommand(clap::SubCommand::with_name("set2"))
+        .subcommand(clap::SubCommand::with_name("set3"))
         .get_matches();
 
     let verbosity = matches.occurrences_of("verbosity") as usize;
@@ -63,6 +64,7 @@ pub fn parse_cmdline() -> types::Settings {
         }
         ("set1", _) => types::SubCommand::Set1,
         ("set2", _) => types::SubCommand::Set2,
+        ("set3", _) => types::SubCommand::Set3,
         _ => types::SubCommand::None,
     };
 
