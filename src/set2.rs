@@ -189,11 +189,7 @@ fn set2_challenge16() -> utils::types::Result<()> {
     //pad the 'user input' with clean usertext so
     //I've got a clean slate to mutate, without touching
     //the oracle's prefix
-    let cryptotext = encryption_oracle4(
-        b"0123456789012345:admin<true:",
-        &iv,
-        &key,
-    )?;
+    let cryptotext = encryption_oracle4(b"0123456789012345:admin<true:", &iv, &key)?;
     let mut faked_cryptotext: Vec<u8> = Vec::new();
     //skip two blocks.. could I know this without knowing
     //what the plaintext prefix is?
