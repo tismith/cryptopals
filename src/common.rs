@@ -20,7 +20,7 @@ pub fn strip_pkcs7_padding(plaintext: &[u8]) -> utils::types::Result<Vec<u8>> {
     let mut expected_padding = padding_char;
     for ch in last_chunk.iter().rev() {
         if *ch == padding_char {
-            if expected_padding <= 0 {
+            if expected_padding == 0 {
                 bail!("Invalid padding - too many padding");
             }
             expected_padding -= 1;
@@ -88,42 +88,42 @@ pub fn crack_single_xor(encrypted: &[u8]) -> (u8, f64) {
 pub fn chi2_score_english(plaintext: &[u8]) -> f64 {
     //this came from the gen-chi2 subcommand
     let pop_frequencies: std::collections::HashMap<u8, f64> = [
-        (b'a', 0.058387284011251504),
-        (b'v', 0.007730499620484887),
-        (b'w', 0.016764447619472846),
-        (b'z', 0.000678662320846542),
-        (b'j', 0.000674495096069414),
-        (b'q', 0.0006834248634489739),
-        (b'.', 0.009190218928130255),
-        (b'f', 0.01576223006057359),
-        (b'b', 0.009242904555669658),
-        (b'u', 0.019084698843595125),
-        (b'l', 0.02852167701031388),
-        (b'-', 0.0005447158101531455),
-        (b'p', 0.011613757794942775),
-        (b'x', 0.0011046122248515426),
-        (b'd', 0.03461177836317364),
+        (b'a', 0.058_387_284_011_251_504),
+        (b'v', 0.007_730_499_620_484_887),
+        (b'w', 0.016_764_447_619_472_846),
+        (b'z', 0.000_678_662_320_846_542),
+        (b'j', 0.000_674_495_096_069_414),
+        (b'q', 0.000_683_424_863_448_973),
+        (b'.', 0.009_190_218_928_130_255),
+        (b'f', 0.015_762_230_060_573_59),
+        (b'b', 0.009_242_904_555_669_658),
+        (b'u', 0.019_084_698_843_595_125),
+        (b'l', 0.028_521_677_010_313_88),
+        (b'-', 0.000_544_715_810_153_145_5),
+        (b'p', 0.011_613_757_794_942_775),
+        (b'x', 0.001_104_612_224_851_542_6),
+        (b'd', 0.034_611_778_363_173_64),
         (b'`', 0.0),
-        (b'g', 0.014890089446503251),
-        (b'o', 0.05609322677144261),
-        (b'y', 0.013385721301960083),
-        (b'!', 0.001168608891071721),
-        (b'h', 0.048529416142042835),
-        (b'c', 0.017713086574094743),
-        (b',', 0.011874209343513268),
-        (b':', 0.00030212379634177194),
-        (b'k', 0.005724278549210459),
-        (b's', 0.04759893438109271),
-        (b' ', 0.15389620633715825),
-        (b'?', 0.0009331606911639952),
+        (b'g', 0.014_890_089_446_503_251),
+        (b'o', 0.056_093_226_771_442_61),
+        (b'y', 0.013_385_721_301_960_083),
+        (b'!', 0.001_168_608_891_071_721),
+        (b'h', 0.048_529_416_142_042_835),
+        (b'c', 0.017_713_086_574_094_743),
+        (b',', 0.011_874_209_343_513_268),
+        (b':', 0.000_302_123_796_341_771_94),
+        (b'k', 0.005_724_278_549_210_459),
+        (b's', 0.047_598_934_381_092_71),
+        (b' ', 0.153_896_206_337_158_25),
+        (b'?', 0.000_933_160_691_163_995_2),
         (b'"', 0.0),
-        (b'r', 0.0432718667678707),
-        (b'e', 0.09266657736899288),
-        (b'n', 0.05374826985757021),
-        (b'm', 0.01737762497953595),
+        (b'r', 0.043_271_866_767_870_7),
+        (b'e', 0.092_666_577_368_992_88),
+        (b'n', 0.053_748_269_857_570_21),
+        (b'm', 0.017_377_624_979_535_95),
         (b'\'', 0.0),
-        (b'i', 0.04891309848045125),
-        (b't', 0.06536470658272685),
+        (b'i', 0.048_913_098_480_451_25),
+        (b't', 0.065_364_706_582_726_85),
     ].iter()
         .cloned()
         .collect();
@@ -145,7 +145,7 @@ pub fn chi2_score_english(plaintext: &[u8]) -> f64 {
         let population_freq = *(pop_frequencies.get(key).unwrap_or(&0.0));
         let expected = population_freq * sample_size;
         //add something so we never divide by 0
-        score += ((observed - expected).powi(2)) / (expected + 0.00000000000001);
+        score += ((observed - expected).powi(2)) / (expected + 0.000_000_000_000_01);
     }
     score
 }
@@ -211,19 +211,19 @@ pub fn aes_128_cbc_decrypt(
 }
 
 pub fn aes_128_cbc_encrypt(
-    ciphertext: &[u8],
+    plaintext: &[u8],
     iv: &[u8],
     key: &[u8],
 ) -> utils::types::Result<Vec<u8>> {
     let mut iv = iv.to_owned();
-    let mut cleartext = Vec::new();
-    for chunk in ciphertext.chunks(16) {
-        let mut block = xor(&iv, &pkcs7_pad(chunk, 16));
+    let mut ciphertext = Vec::new();
+    for chunk in plaintext.chunks(16) {
+        let mut block = xor(&iv, chunk);
         block = aes_128_ecb_encrypt(&block, key)?;
         iv = block.clone();
-        cleartext.extend_from_slice(&block);
+        ciphertext.extend_from_slice(&block);
     }
-    Ok(cleartext)
+    Ok(ciphertext)
 }
 
 #[cfg(test)]
@@ -270,7 +270,7 @@ mod test {
     }
 
     #[test]
-    fn test_strip_pkcs7_padding () {
+    fn test_strip_pkcs7_padding() {
         let test1 = b"0123456789\x06\x06\x06\x06\x06\x06";
         let stripped = strip_pkcs7_padding(test1).unwrap();
         assert_eq!(stripped, b"0123456789");
@@ -278,14 +278,14 @@ mod test {
 
     #[test]
     #[should_panic]
-    fn test_strip_pkcs7_padding_error_incrementing () {
+    fn test_strip_pkcs7_padding_error_incrementing() {
         let test1 = b"0123456789\x01\x02\x03\x04\x05\x06";
         let _ = strip_pkcs7_padding(test1).unwrap();
     }
 
     #[test]
     #[should_panic]
-    fn test_strip_pkcs7_padding_error_incorrect () {
+    fn test_strip_pkcs7_padding_error_incorrect() {
         let test1 = b"0123456789\x01\x01\x01\x01\x01\x01";
         let _ = strip_pkcs7_padding(test1).unwrap();
     }

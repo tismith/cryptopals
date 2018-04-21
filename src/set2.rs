@@ -146,7 +146,7 @@ pub fn run_set2() -> utils::types::Result<()> {
         trace!("making fake profile blocks");
         let email = "123456789@123";
         let legit = encrypt_profile(email, &key)?;
-        let mut forged : Vec<u8> = legit[0..32].to_vec();
+        let mut forged: Vec<u8> = legit[0..32].to_vec();
 
         trace!("copying and pasting the bits together");
         forged.append(&mut admin.to_owned());
@@ -157,7 +157,7 @@ pub fn run_set2() -> utils::types::Result<()> {
         println!("decrypted is {}", &std::str::from_utf8(&decrypted2)?);
         let parsed2 = parse_kv_query(std::str::from_utf8(&decrypted2)?)?;
         println!("forged profile is ");
-        for (k,v) in &parsed2 {
+        for (k, v) in &parsed2 {
             println!("{} = {}", k, v);
         }
     }
@@ -167,7 +167,7 @@ pub fn run_set2() -> utils::types::Result<()> {
         println!("Set Challenge 14");
 
         let mut rng = rand::thread_rng();
-        let random_count : usize = rand::random::<usize>() % 100;
+        let random_count: usize = rand::random::<usize>() % 100;
         let mut random_bytes = vec![0u8; random_count];
         rng.fill_bytes(&mut random_bytes);
 
@@ -177,7 +177,7 @@ pub fn run_set2() -> utils::types::Result<()> {
         //first, find what the key encrypts a block of 'A' to
         let output = encryption_oracle3(&random_bytes, &[b'A'; 100])?;
         debug!("collecting chunks by count");
-        let chunks : Vec<_> = output.chunks(16).collect();
+        let chunks: Vec<_> = output.chunks(16).collect();
         let mut chunk_count = std::collections::HashMap::new();
         for chunk in &chunks {
             let current_count = *chunk_count.get(chunk).unwrap_or(&0);
@@ -185,14 +185,12 @@ pub fn run_set2() -> utils::types::Result<()> {
         }
         debug!("about to look for largest counted block");
         let base = vec![0u8; 16];
-        let (k, v) : (&[u8], _) = chunk_count
-            .iter()
-            .fold((&base, &0), |(ko, vo), (k, v)| {
-                if v > vo {
-                    (k, v)
-                } else {
-                    (ko, vo)
-                }
+        let (k, v): (&[u8], _) = chunk_count.iter().fold((&base, &0), |(ko, vo), (k, v)| {
+            if v > vo {
+                (k, v)
+            } else {
+                (ko, vo)
+            }
         });
         debug!("Highest scoring block was:\n{:?} = {}", k, v);
 
@@ -203,7 +201,7 @@ pub fn run_set2() -> utils::types::Result<()> {
             let trial_padding = vec![b'A'; i];
             let output = encryption_oracle3(&random_bytes, &trial_padding)?;
             let mut found_chunk = false;
-            let chunks : Vec<_> = output.chunks(16).collect();
+            let chunks: Vec<_> = output.chunks(16).collect();
             chunk_index = 0;
             for chunk in &chunks {
                 if chunk == &k {
@@ -283,21 +281,25 @@ pub fn run_set2() -> utils::types::Result<()> {
 
     {
         println!("Set 2 Challenge 15");
-        println!("{}", std::str::from_utf8(&common::strip_pkcs7_padding(b"ICE ICE BABY\x04\x04\x04\x04")?)?);
-
+        println!(
+            "{}",
+            std::str::from_utf8(&common::strip_pkcs7_padding(
+                b"ICE ICE BABY\x04\x04\x04\x04"
+            )?)?
+        );
     }
 
     {
         println!("Set 2 Challenge 16");
-        let key : [u8; 16] = rand::random();
+        let _key: [u8; 16] = rand::random();
     }
 
     Ok(())
 }
 
 fn encryption_oracle4(plaintext: &[u8], key: &[u8]) -> utils::types::Result<Vec<u8>> {
-    let prefix = b"comment1=cooking%20MCs;userdata=";
-    let suffix = b";comment2=%20like%20a%20pound%20of%20bacon";
+    let _prefix = b"comment1=cooking%20MCs;userdata=";
+    let _suffix = b";comment2=%20like%20a%20pound%20of%20bacon";
     let mut santitized = plaintext.to_vec();
     santitized.retain(|&x| x != b';' || x != b'=');
     //this will do pkcs#7 padding for me
@@ -366,7 +368,7 @@ fn encryption_oracle(cleartext: &[u8]) -> utils::types::Result<(Vec<u8>, EcbOrCb
     } else {
         //CBC
         trace!("Chose CBC");
-        let iv : [u8; 16] = rand::random();
+        let iv: [u8; 16] = rand::random();
         Ok((
             common::aes_128_cbc_encrypt(&plaintext, &iv, &key)?,
             EcbOrCbc::CBC,
