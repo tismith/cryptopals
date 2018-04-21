@@ -184,7 +184,33 @@ fn set2_challenge16() -> utils::types::Result<()> {
     println!("Set 2 Challenge 16");
     let iv: [u8; 16] = rand::random();
     let key: [u8; 16] = rand::random();
-    encryption_oracle4(b"", &iv, &key)?;
+    //; is 0x3b, = is 0x3d
+    //: is 0x3a, < is 0x3c
+    //pad the 'user input' with clean usertext so
+    //I've got a clean slate to mutate, without touching
+    //the oracle's prefix
+    let cryptotext = encryption_oracle4(
+        b"0123456789012345:admin<true:",
+        &iv,
+        &key,
+    )?;
+    let mut faked_cryptotext: Vec<u8> = Vec::new();
+    //skip two blocks.. could I know this without knowing
+    //what the plaintext prefix is?
+    faked_cryptotext.extend(cryptotext[0..32].iter());
+    let mut block_to_mutate = cryptotext[32..48].to_vec();
+    let semicolon_mask = b';' ^ b':';
+    let equal_mask = b'=' ^ b'<';
+    block_to_mutate[0] ^= semicolon_mask;
+    block_to_mutate[6] ^= equal_mask;
+    block_to_mutate[11] ^= semicolon_mask;
+    faked_cryptotext.extend(block_to_mutate.iter());
+    faked_cryptotext.extend(cryptotext[48..].iter());
+    if is_admin_profile(&faked_cryptotext, &iv, &key)? {
+        println!("We have admin!");
+    } else {
+        println!("We don't have admin :(");
+    }
     Ok(())
 }
 
@@ -328,6 +354,16 @@ fn encryption_oracle4(plaintext: &[u8], iv: &[u8], key: &[u8]) -> utils::types::
     Ok(common::aes_128_cbc_encrypt(&input, iv, key)?)
 }
 
+fn is_admin_profile(session: &[u8], iv: &[u8], key: &[u8]) -> utils::types::Result<bool> {
+    let plaintext = common::aes_128_cbc_decrypt(session, iv, key)?;
+    for segment in plaintext.split(|ch| *ch == b';') {
+        if segment == b"admin=true" {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 fn encrypt_profile(email: &str, key: &[u8]) -> utils::types::Result<Vec<u8>> {
     let profile = profile_for(email);
     Ok(common::aes_128_ecb_encrypt(profile.as_bytes(), key)?)
@@ -455,6 +491,25 @@ mod test {
             let (cryptotext, mode) = encryption_oracle(&buffer).unwrap();
             assert_eq!(detect_ecb_or_cbc(&cryptotext), mode);
         })
+    }
+
+    #[test]
+    fn test_is_admin_profile() {
+        {
+            let plaintext = b"hello;admin=true;world";
+            let key: [u8; 16] = rand::random();
+            let iv: [u8; 16] = rand::random();
+            let crypted = common::aes_128_cbc_encrypt(plaintext, &iv, &key).unwrap();
+            assert_eq!(is_admin_profile(&crypted, &iv, &key).unwrap(), true);
+        }
+
+        {
+            let plaintext = b"hello;admin=false;world";
+            let key: [u8; 16] = rand::random();
+            let iv: [u8; 16] = rand::random();
+            let crypted = common::aes_128_cbc_encrypt(plaintext, &iv, &key).unwrap();
+            assert_eq!(is_admin_profile(&crypted, &iv, &key).unwrap(), false);
+        }
     }
 
     #[test]
