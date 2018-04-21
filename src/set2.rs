@@ -182,7 +182,9 @@ pub fn run_set2() -> utils::types::Result<()> {
 
 fn set2_challenge16() -> utils::types::Result<()> {
     println!("Set 2 Challenge 16");
-    let _key: [u8; 16] = rand::random();
+    let iv: [u8; 16] = rand::random();
+    let key: [u8; 16] = rand::random();
+    encryption_oracle4(b"", &iv, &key)?;
     Ok(())
 }
 
@@ -303,13 +305,27 @@ fn set2_challenge14() -> utils::types::Result<()> {
     Ok(())
 }
 
-fn encryption_oracle4(plaintext: &[u8], key: &[u8]) -> utils::types::Result<Vec<u8>> {
-    let _prefix = b"comment1=cooking%20MCs;userdata=";
-    let _suffix = b";comment2=%20like%20a%20pound%20of%20bacon";
-    let mut santitized = plaintext.to_vec();
-    santitized.retain(|&x| x != b';' || x != b'=');
+fn encryption_oracle4(plaintext: &[u8], iv: &[u8], key: &[u8]) -> utils::types::Result<Vec<u8>> {
+    let prefix = b"comment1=cooking%20MCs;userdata=";
+    let suffix = b";comment2=%20like%20a%20pound%20of%20bacon";
+    let mut input = Vec::new();
+    input.extend(prefix.iter());
+    for c in plaintext {
+        if *c == b';' {
+            input.push(b'%');
+            input.push(b'3');
+            input.push(b'B');
+        } else if *c == b'=' {
+            input.push(b'%');
+            input.push(b'3');
+            input.push(b'D');
+        } else {
+            input.push(*c);
+        }
+    }
+    input.extend(suffix.iter());
     //this will do pkcs#7 padding for me
-    Ok(common::aes_128_cbc_encrypt(&[0u8; 16], &santitized, key)?)
+    Ok(common::aes_128_cbc_encrypt(&input, iv, key)?)
 }
 
 fn encrypt_profile(email: &str, key: &[u8]) -> utils::types::Result<Vec<u8>> {
