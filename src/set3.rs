@@ -33,9 +33,7 @@ fn set3_challenge17() -> utils::types::Result<()> {
     //need to treat first block specially, using the IV for manipulation
     for i in 0..(original_ciphertext.len() - blocksize) {
         let index = original_ciphertext.len() - blocksize - 1 - i;
-        debug!("index is {}", index);
         let target_padding = (i % blocksize + 1) as u8;
-        debug!("target_padding is {}", target_padding);
 
         let mut mangled_ciphertext = original_ciphertext.clone();
         mangled_ciphertext.truncate(original_ciphertext.len() - (i / blocksize) * blocksize);
@@ -51,6 +49,45 @@ fn set3_challenge17() -> utils::types::Result<()> {
         loop {
             mangled_ciphertext[index] = original_ciphertext[index] ^ control;
             if decrypt_and_check_padding(&mangled_ciphertext, &iv, &key)? {
+                debug!(
+                    "found valid padding with control {} and char is {}",
+                    control,
+                    target_padding ^ control
+                );
+                break;
+            }
+            if control == 0 {
+                bail!("didn't find any valid padding");
+            }
+            control -= 1;
+        }
+        plaintext.push_front(target_padding ^ control);
+    }
+
+    //need to treat first block specially, using the IV for manipulation
+    for i in 0..blocksize {
+        //index is now an index in the iv
+        let index = blocksize - i - 1;
+        debug!("index is {}", index);
+        let target_padding = (i % blocksize + 1) as u8;
+        debug!("target_padding is {}", target_padding);
+
+        let mut mangled_ciphertext = original_ciphertext.clone();
+        mangled_ciphertext.truncate(blocksize);
+
+        let mut mangled_iv = iv.to_vec();
+        //set up the rest of our block for our target padding
+        for j in 0..(target_padding as usize - 1) {
+            mangled_iv[index + j + 1] =
+                iv[index + j + 1] ^ plaintext[j] ^ target_padding;
+        }
+
+        //count downwards, which leaves the control = 0 as our last option
+        //if we count upwards, the first last block triggers a false positive
+        let mut control = std::u8::MAX;
+        loop {
+            mangled_iv[index] = iv[index] ^ control;
+            if decrypt_and_check_padding(&mangled_ciphertext, &mangled_iv, &key)? {
                 debug!(
                     "found valid padding with control {} and char is {}",
                     control,
