@@ -11,8 +11,8 @@ pub fn run_set3() -> utils::types::Result<()> {
 
 fn set3_challenge17() -> utils::types::Result<()> {
     println!("Set 3 Challenge 17");
-    let iv :[u8; 16] = rand::random();
-    let key :[u8; 16] = rand::random();
+    let iv: [u8; 16] = rand::random();
+    let key: [u8; 16] = rand::random();
     //Like the last challenge, rely on corrupting the previous block
     //to cause an single-char xor in the current block to
     //find which character, Control, gives valid padding
@@ -26,22 +26,46 @@ fn set3_challenge17() -> utils::types::Result<()> {
 
     let original_ciphertext = challenge17_oracle(&iv, &key)?;
     let blocksize = 16;
-    let mut reversed_plaintext = Vec::new();
+    let mut plaintext = std::collections::VecDeque::new();
+    debug!("original_ciphertext len is {}", original_ciphertext.len());
 
-    let target_padding = b'\x01';
-    let index = original_ciphertext.len() - blocksize;
-    let mut mangled_ciphertext = original_ciphertext.clone();
-    let clean_cipherchar = original_ciphertext[index];
-    let mut control = b'\x00';
-    for c in 0..std::u8::MAX {
-        control = c;
-        mangled_ciphertext[index] = clean_cipherchar ^ control;
-        if decrypt_and_check_padding(&mangled_ciphertext, &iv, &key)? {
-            debug!("found valid padding and char is {}", target_padding ^ control);
-            break;
+    //for index in (0..(original_ciphertext.len() - blocksize + 1)).rev() {
+    //--------------------------------------------------
+    //     for index in (0..(original_ciphertext.len() - blocksize + 1)).rev().take(16) {
+    //--------------------------------------------------
+    for i in 0..blocksize {
+        let index = original_ciphertext.len() - blocksize - 1 - i;
+        debug!("index is {}", index);
+        let target_padding = b'\x01' + i as u8; //(index % blocksize) as u8;
+
+        let mut mangled_ciphertext = original_ciphertext.clone();
+        //set up the rest of our block for our target padding
+        for j in 0..i {
+            mangled_ciphertext[index + j + 1] =
+                original_ciphertext[index + j + 1] ^ plaintext[j] ^ target_padding;
         }
+
+        //count downwards, which leaves the control = 0 as our last option
+        //if we count upwards, the first last block triggers a false positive
+        let mut control = std::u8::MAX;
+        loop {
+            mangled_ciphertext[index] = original_ciphertext[index] ^ control;
+            if decrypt_and_check_padding(&mangled_ciphertext, &iv, &key)? {
+                debug!(
+                    "found valid padding with control {} and char is {}",
+                    control,
+                    target_padding ^ control
+                );
+                break;
+            }
+            if control == 0 {
+                bail!("didn't find any valid padding");
+            }
+            control -= 1;
+        }
+        info!("pushing char in {}", target_padding ^ control);
+        plaintext.push_front(target_padding ^ control);
     }
-    reversed_plaintext.push(target_padding ^ control);
 
     Ok(())
 }
@@ -64,7 +88,11 @@ fn challenge17_oracle(iv: &[u8], key: &[u8]) -> utils::types::Result<Vec<u8>> {
     common::aes_128_cbc_encrypt(&plaintext, iv, key)
 }
 
-fn decrypt_and_check_padding(ciphertext: &[u8], iv: &[u8], key: &[u8]) -> utils::types::Result<bool> {
+fn decrypt_and_check_padding(
+    ciphertext: &[u8],
+    iv: &[u8],
+    key: &[u8],
+) -> utils::types::Result<bool> {
     let mut iv = iv.to_vec();
     let mut cleartext = Vec::new();
     for chunk in ciphertext.chunks(16) {
