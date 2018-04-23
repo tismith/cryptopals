@@ -26,21 +26,21 @@ fn set3_challenge17() -> utils::types::Result<()> {
 
     let original_ciphertext = challenge17_oracle(&iv, &key)?;
     let blocksize = 16;
+    //use a deque so I can prepend
     let mut plaintext = std::collections::VecDeque::new();
     debug!("original_ciphertext len is {}", original_ciphertext.len());
 
-    //for index in (0..(original_ciphertext.len() - blocksize + 1)).rev() {
-    //--------------------------------------------------
-    //     for index in (0..(original_ciphertext.len() - blocksize + 1)).rev().take(16) {
-    //--------------------------------------------------
-    for i in 0..blocksize {
+    //need to treat first block specially, using the IV for manipulation
+    for i in 0..(original_ciphertext.len() - blocksize) {
         let index = original_ciphertext.len() - blocksize - 1 - i;
         debug!("index is {}", index);
-        let target_padding = b'\x01' + i as u8; //(index % blocksize) as u8;
+        let target_padding = (i % blocksize + 1) as u8;
+        debug!("target_padding is {}", target_padding);
 
         let mut mangled_ciphertext = original_ciphertext.clone();
+        mangled_ciphertext.truncate(original_ciphertext.len() - (i / blocksize) * blocksize);
         //set up the rest of our block for our target padding
-        for j in 0..i {
+        for j in 0..(target_padding as usize - 1) {
             mangled_ciphertext[index + j + 1] =
                 original_ciphertext[index + j + 1] ^ plaintext[j] ^ target_padding;
         }
@@ -66,6 +66,13 @@ fn set3_challenge17() -> utils::types::Result<()> {
         info!("pushing char in {}", target_padding ^ control);
         plaintext.push_front(target_padding ^ control);
     }
+
+    //convert the vecdeque to a vec
+    let simple_plaintext: Vec<_> = plaintext.into();
+    println!(
+        "{}",
+        std::str::from_utf8(&common::strip_pkcs7_padding(&simple_plaintext)?)?
+    );
 
     Ok(())
 }
