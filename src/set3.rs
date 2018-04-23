@@ -49,7 +49,7 @@ fn set3_challenge17() -> utils::types::Result<()> {
         loop {
             mangled_ciphertext[index] = original_ciphertext[index] ^ control;
             if decrypt_and_check_padding(&mangled_ciphertext, &iv, &key)? {
-                debug!(
+                trace!(
                     "found valid padding with control {} and char is {}",
                     control,
                     target_padding ^ control
@@ -68,9 +68,7 @@ fn set3_challenge17() -> utils::types::Result<()> {
     for i in 0..blocksize {
         //index is now an index in the iv
         let index = blocksize - i - 1;
-        debug!("index is {}", index);
         let target_padding = (i % blocksize + 1) as u8;
-        debug!("target_padding is {}", target_padding);
 
         let mut mangled_ciphertext = original_ciphertext.clone();
         mangled_ciphertext.truncate(blocksize);
@@ -88,7 +86,7 @@ fn set3_challenge17() -> utils::types::Result<()> {
         loop {
             mangled_iv[index] = iv[index] ^ control;
             if decrypt_and_check_padding(&mangled_ciphertext, &mangled_iv, &key)? {
-                debug!(
+                trace!(
                     "found valid padding with control {} and char is {}",
                     control,
                     target_padding ^ control
@@ -100,7 +98,6 @@ fn set3_challenge17() -> utils::types::Result<()> {
             }
             control -= 1;
         }
-        info!("pushing char in {}", target_padding ^ control);
         plaintext.push_front(target_padding ^ control);
     }
 
