@@ -1,12 +1,12 @@
-use std;
-use utils;
-use utils::types::ResultExt;
 use base64;
 use bit_vec;
 #[cfg(test)]
 use hex;
+use std;
+use utils;
+use utils::types::ResultExt;
 
-pub fn strip_pkcs7_padding(plaintext: &[u8]) -> utils::types::Result<Vec<u8>> {
+pub fn strip_pkcs7_padding(plaintext: &[u8]) -> utils::types::Result<&[u8]> {
     let blocksize = 16;
     if plaintext.len() % blocksize != 0 {
         bail!("Invalid padding - not padded");
@@ -26,7 +26,7 @@ pub fn strip_pkcs7_padding(plaintext: &[u8]) -> utils::types::Result<Vec<u8>> {
             bail!("Invalid padding - incorrect padding");
         }
         if expected_padding == 0 {
-            return Ok(plaintext[..(plaintext.len() - padding_char as usize)].to_vec());
+            return Ok(&plaintext[..(plaintext.len() - padding_char as usize)]);
         }
     }
     bail!("Invalid padding");
@@ -83,7 +83,6 @@ pub fn crack_single_xor(encrypted: &[u8]) -> (u8, f64) {
     (best_key, best_score)
 }
 
-//#[allow(unreadable_literal)]
 pub fn chi2_score_english(plaintext: &[u8]) -> f64 {
     //this came from the gen-chi2 subcommand
     let pop_frequencies: std::collections::HashMap<u8, f64> = [
@@ -208,7 +207,7 @@ pub fn aes_128_cbc_decrypt(
         iv = chunk.to_vec();
         cleartext.extend_from_slice(&block);
     }
-    Ok(strip_pkcs7_padding(&cleartext)?)
+    Ok(strip_pkcs7_padding(&cleartext)?.to_vec())
 }
 
 pub fn aes_128_cbc_encrypt(

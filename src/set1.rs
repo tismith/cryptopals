@@ -1,10 +1,10 @@
-use utils;
-use utils::types::ResultExt;
-use common;
 use base64;
 use bytecount;
+use common;
 use hex;
 use std;
+use utils;
+use utils::types::ResultExt;
 
 pub fn gen_chi2(source: &str) -> utils::types::Result<()> {
     use std::io::Read;

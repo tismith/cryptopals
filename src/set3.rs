@@ -1,11 +1,16 @@
-use std;
-use rand;
-use utils;
 use base64;
 use common;
+use rand;
+use std;
+use utils;
 
 pub fn run_set3() -> utils::types::Result<()> {
     set3_challenge17()?;
+    set3_challenge18()?;
+    Ok(())
+}
+
+fn set3_challenge18() -> utils::types::Result<()> {
     Ok(())
 }
 
@@ -76,8 +81,7 @@ fn set3_challenge17() -> utils::types::Result<()> {
         let mut mangled_iv = iv.to_vec();
         //set up the rest of our block for our target padding
         for j in 0..(target_padding as usize - 1) {
-            mangled_iv[index + j + 1] =
-                iv[index + j + 1] ^ plaintext[j] ^ target_padding;
+            mangled_iv[index + j + 1] = iv[index + j + 1] ^ plaintext[j] ^ target_padding;
         }
 
         //count downwards, which leaves the control = 0 as our last option

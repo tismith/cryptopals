@@ -16,11 +16,11 @@ extern crate hex;
 extern crate openssl;
 extern crate rand;
 
-mod utils;
 mod common;
 mod set1;
 mod set2;
 mod set3;
+mod utils;
 
 use error_chain::ChainedError; // trait which holds `display_chain`
 

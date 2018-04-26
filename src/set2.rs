@@ -1,7 +1,7 @@
-use std;
-use rand;
-use utils;
 use base64;
+use rand;
+use std;
+use utils;
 //use utils::types::ResultExt;
 use common;
 use hex;
@@ -399,7 +399,7 @@ fn last_n_bytes_left_padded(buffer: &[u8], size: usize) -> Vec<u8> {
 }
 
 fn encryption_oracle(cleartext: &[u8]) -> utils::types::Result<(Vec<u8>, EcbOrCbc)> {
-    use rand::{Rng, distributions::IndependentSample};
+    use rand::{distributions::IndependentSample, Rng};
     let mut rng = rand::thread_rng();
     let key: [u8; 16] = rand::random();
     let range = rand::distributions::Range::new(5, 11);
