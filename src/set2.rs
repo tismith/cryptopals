@@ -68,7 +68,7 @@ pub fn run_set2() -> utils::types::Result<()> {
             let mut dictionary = std::collections::HashMap::new();
             let block = last_n_bytes_left_padded(&secret, blocksize - 1);
             trace!("block is {:?}", block);
-            for c in 0..std::u8::MAX {
+            for c in 0..=std::u8::MAX {
                 //build up dictionary
                 let mut this_block = block.clone();
                 this_block.push(c);

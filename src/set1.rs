@@ -61,7 +61,7 @@ pub fn run_set1() -> utils::types::Result<()> {
         let mut best_key = 0;
         let mut best_count_of_common_english = 0;
         let frequents = "etaoinshrdlu";
-        for key in 0..std::u8::MAX {
+        for key in 0..=std::u8::MAX {
             let xored = common::single_char_xor(&buffer, &key);
             let mut count_of_common_english = 0;
             for c in frequents.chars() {
