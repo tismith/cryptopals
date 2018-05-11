@@ -12,6 +12,7 @@ extern crate clap;
 extern crate base64;
 extern crate bit_vec;
 extern crate bytecount;
+extern crate byteorder;
 extern crate hex;
 extern crate openssl;
 extern crate rand;

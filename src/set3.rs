@@ -3,6 +3,7 @@ use common;
 use rand;
 use std;
 use utils;
+use byteorder::{LittleEndian, WriteBytesExt};
 
 pub fn run_set3() -> utils::types::Result<()> {
     set3_challenge17()?;
@@ -11,6 +12,23 @@ pub fn run_set3() -> utils::types::Result<()> {
 }
 
 fn set3_challenge18() -> utils::types::Result<()> {
+    println!("Set 3 Challenge 18");
+    let original_ciphertext: &[u8] = b"L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==";
+
+    let ciphertext = base64::decode(original_ciphertext)?;
+    let key = b"YELLOW SUBMARINE";
+
+    let mut count = 0u64;
+    let mut cleartext: Vec<u8> = Vec::with_capacity(ciphertext.len());
+    for chunk in ciphertext.chunks(16) {
+        let mut ctr = vec![0u8; 8]; //this is the nonce
+        ctr.write_u64::<LittleEndian>(count)?;
+        let keystream = common::aes_128_ecb_encrypt(&ctr, key)?;
+        let cleartext_chunk = common::xor(&keystream, &chunk);
+        cleartext.extend(&cleartext_chunk);
+        count += 1;
+    }
+    println!("{}", std::str::from_utf8(&cleartext)?);
     Ok(())
 }
 
