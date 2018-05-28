@@ -21,7 +21,7 @@ fn set3_challenge19() -> utils::types::Result<()> {
         .chain_err(|| "Failed to open data/set3-challenge19.txt")?;
     let file = std::io::BufReader::new(&file);
     let source: Vec<_> = file.lines()
-        .filter_map(Result::ok)
+        .flat_map(Result::ok)
         .flat_map(|x| base64::decode(&x))
         .flat_map(|x| aes_ctr(&key, &[0; 8], &x))
         .collect();
@@ -34,8 +34,7 @@ fn aes_ctr(key: &[u8], nonce: &[u8], plaintext: &[u8]) -> utils::types::Result<V
     let mut count = 0u64;
     let mut ciphertext: Vec<u8> = Vec::with_capacity(plaintext.len());
     for chunk in plaintext.chunks(16) {
-        let mut ctr = Vec::new();
-        ctr.extend(nonce);
+        let mut ctr = nonce.to_vec();
         ctr.write_u64::<LittleEndian>(count)?;
         let keystream = common::aes_128_ecb_encrypt(&ctr, key)?;
         let ciphertext_chunk = common::xor(&keystream, &chunk);
