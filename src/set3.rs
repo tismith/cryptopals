@@ -1,33 +1,59 @@
 use base64;
+use byteorder::{LittleEndian, WriteBytesExt};
 use common;
 use rand;
 use std;
 use utils;
-use byteorder::{LittleEndian, WriteBytesExt};
+use utils::types::ResultExt;
 
 pub fn run_set3() -> utils::types::Result<()> {
     set3_challenge17()?;
     set3_challenge18()?;
+    set3_challenge19()?;
     Ok(())
+}
+
+fn set3_challenge19() -> utils::types::Result<()> {
+    println!("Set 3 Challenge 19");
+    use std::io::BufRead;
+    let key: [u8; 16] = rand::random();
+    let file = std::fs::File::open("data/set3-challenge19.txt")
+        .chain_err(|| "Failed to open data/set3-challenge19.txt")?;
+    let file = std::io::BufReader::new(&file);
+    let source: Vec<_> = file.lines()
+        .filter_map(Result::ok)
+        .flat_map(|x| base64::decode(&x))
+        .flat_map(|x| aes_ctr(&key, &[0; 8], &x))
+        .collect();
+    println!("number of lines {}", source.len());
+
+    Ok(())
+}
+
+fn aes_ctr(key: &[u8], nonce: &[u8], plaintext: &[u8]) -> utils::types::Result<Vec<u8>> {
+    let mut count = 0u64;
+    let mut ciphertext: Vec<u8> = Vec::with_capacity(plaintext.len());
+    for chunk in plaintext.chunks(16) {
+        let mut ctr = Vec::new();
+        ctr.extend(nonce);
+        ctr.write_u64::<LittleEndian>(count)?;
+        let keystream = common::aes_128_ecb_encrypt(&ctr, key)?;
+        let ciphertext_chunk = common::xor(&keystream, &chunk);
+        ciphertext.extend(&ciphertext_chunk);
+        count += 1;
+    }
+    Ok(ciphertext)
 }
 
 fn set3_challenge18() -> utils::types::Result<()> {
     println!("Set 3 Challenge 18");
-    let original_ciphertext: &[u8] = b"L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==";
+    let original_ciphertext: &[u8] =
+        b"L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==";
 
     let ciphertext = base64::decode(original_ciphertext)?;
     let key = b"YELLOW SUBMARINE";
 
-    let mut count = 0u64;
-    let mut cleartext: Vec<u8> = Vec::with_capacity(ciphertext.len());
-    for chunk in ciphertext.chunks(16) {
-        let mut ctr = vec![0u8; 8]; //this is the nonce
-        ctr.write_u64::<LittleEndian>(count)?;
-        let keystream = common::aes_128_ecb_encrypt(&ctr, key)?;
-        let cleartext_chunk = common::xor(&keystream, &chunk);
-        cleartext.extend(&cleartext_chunk);
-        count += 1;
-    }
+    let cleartext = aes_ctr(key, &[0u8; 8], &ciphertext)?;
     println!("{}", std::str::from_utf8(&cleartext)?);
     Ok(())
 }
