@@ -10,6 +10,52 @@ pub fn run_set3() -> utils::types::Result<()> {
     set3_challenge17()?;
     set3_challenge18()?;
     set3_challenge19()?;
+    set3_challenge20()?;
+    Ok(())
+}
+
+fn set3_challenge20() -> utils::types::Result<()> {
+    println!("Set 3 Challenge 20");
+    use std::io::BufRead;
+    let k: [u8; 16] = rand::random();
+    let file = std::fs::File::open("data/set3-challenge20.txt")
+        .chain_err(|| "Failed to open data/set3-challenge20.txt")?;
+    let file = std::io::BufReader::new(&file);
+    let mut source: Vec<_> = file
+        .lines()
+        .flat_map(Result::ok)
+        .flat_map(|x| base64::decode(&x))
+        //.inspect(|x| println!("{}", String::from_utf8_lossy(x)))
+        .flat_map(|x| aes_ctr(&k, &[0; 8], &x))
+        .collect();
+    let min_length = source
+        .iter()
+        .fold(std::usize::MAX, |m, elem| std::cmp::min(m, elem.len()));
+    source.iter_mut().for_each(|x| x.truncate(min_length));
+    let buffer = source.concat();
+    //now we can just break flattened as if it's a repeating-key-xor
+    //transpose into key_len vectors
+    trace!("min_length is {}", min_length);
+    let key_len = min_length;
+    let mut transposed = Vec::new();
+    for _ in 0..key_len {
+        transposed.push(Vec::new());
+    }
+    for chunk in buffer.chunks(key_len) {
+        for (i, b) in chunk.iter().enumerate() {
+            transposed[i].push(b.clone());
+        }
+    }
+
+    let mut cracked_key = Vec::new();
+    //now single-xor crack each transpose vector
+    for slice in &transposed {
+        cracked_key.push(common::crack_single_xor(slice).0);
+    }
+    for line in &source {
+        println!("{}", String::from_utf8_lossy(&common::repeating_key_xor(line, &cracked_key)));
+    }
+
     Ok(())
 }
 
@@ -33,8 +79,14 @@ fn set3_challenge19() -> utils::types::Result<()> {
     let _key = common::xor(b"Thi", &source[0]);
     let _key = common::xor(b"I'm ", &source[42]);
     let _key = common::xor(b"Think", &source[0]);
-    let _key = common::xor(b"I'm aaaaaaaaa aaaaaaaa                         ", &source[0]);
-    let _key = common::xor(b"I'm eeeeeeeaaaaaaaaa aaaaaaaa                 ", &source[0]);
+    let _key = common::xor(
+        b"I'm aaaaaaaaa aaaaaaaa                         ",
+        &source[0],
+    );
+    let _key = common::xor(
+        b"I'm eeeeeeeaaaaaaaaa aaaaaaaa                 ",
+        &source[0],
+    );
     let _key = common::xor(b"Lyrics", &source[24]);
     let _key = common::xor(b"Thinkin", &source[42]);
     let _key = common::xor(b"So I stand", &source[44]);
@@ -55,13 +107,26 @@ fn set3_challenge19() -> utils::types::Result<()> {
     let _key = common::xor(b"'Cause my girl is definitely mad / 'Cause", &source[55]);
     let _key = common::xor(b"You want to hear some sounds that not only ", &source[26]);
     let _key = common::xor(b"Cuz I came back to attack others in spite-", &source[1]);
-    let _key = common::xor(b"Yo, I hear what you're saying / So let's just", &source[56]);
-    let _key = common::xor(b"Worse than a nightmare, you don't have to sleep ", &source[12]);
-    let key = common::xor(b"Music's the clue, when I come your warned / Apocalypse", &source[5]);
+    let _key = common::xor(
+        b"Yo, I hear what you're saying / So let's just",
+        &source[56],
+    );
+    let _key = common::xor(
+        b"Worse than a nightmare, you don't have to sleep ",
+        &source[12],
+    );
+    let key = common::xor(
+        b"Music's the clue, when I come your warned / Apocalypse",
+        &source[5],
+    );
     //.... I can just keep trying till I get the answer out...
 
     for (count, s) in source.iter().enumerate() {
-        println!("{:3}: {}", count, String::from_utf8_lossy(&common::xor(&key, s)));
+        println!(
+            "{:3}: {}",
+            count,
+            String::from_utf8_lossy(&common::xor(&key, s))
+        );
     }
 
     Ok(())
