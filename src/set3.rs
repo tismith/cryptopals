@@ -16,7 +16,7 @@ pub fn run_set3() -> utils::types::Result<()> {
 fn set3_challenge19() -> utils::types::Result<()> {
     println!("Set 3 Challenge 19");
     use std::io::BufRead;
-    let key: [u8; 16] = rand::random();
+    let k: [u8; 16] = rand::random();
     let file = std::fs::File::open("data/set3-challenge19.txt")
         .chain_err(|| "Failed to open data/set3-challenge19.txt")?;
     let file = std::io::BufReader::new(&file);
@@ -24,9 +24,45 @@ fn set3_challenge19() -> utils::types::Result<()> {
         .lines()
         .flat_map(Result::ok)
         .flat_map(|x| base64::decode(&x))
-        .flat_map(|x| aes_ctr(&key, &[0; 8], &x))
+        .flat_map(|x| aes_ctr(&k, &[0; 8], &x))
         .collect();
     println!("number of lines {}", source.len());
+
+    let _key = common::xor(b"The", &source[0]);
+    let _key = common::xor(b"I d", &source[0]);
+    let _key = common::xor(b"Thi", &source[0]);
+    let _key = common::xor(b"I'm ", &source[42]);
+    let _key = common::xor(b"Think", &source[0]);
+    let _key = common::xor(b"I'm aaaaaaaaa aaaaaaaa                         ", &source[0]);
+    let _key = common::xor(b"I'm eeeeeeeaaaaaaaaa aaaaaaaa                 ", &source[0]);
+    let _key = common::xor(b"Lyrics", &source[24]);
+    let _key = common::xor(b"Thinkin", &source[42]);
+    let _key = common::xor(b"So I stand", &source[44]);
+    let _key = common::xor(b"Novocain ", &source[35]);
+    let _key = common::xor(b"So I start ", &source[44]);
+    let _key = common::xor(b"MC's decaying ", &source[16]);
+    let _key = common::xor(b"Musical madness", &source[30]);
+    let _key = common::xor(b"Battle's tempting ", &source[32]);
+    let _key = common::xor(b"Flashbacks interfereing", &source[13]);
+    let _key = common::xor(b"Hazardous to your health", &source[20]);
+    let _key = common::xor(b"I bless the child, the earth", &source[19]);
+    let _key = common::xor(b"But now I learned to earn 'cuz", &source[47]);
+    let _key = common::xor(b"So I walk up the street whistlin", &source[49]);
+    let _key = common::xor(b"'Cuz I don't like to dream about ", &source[52]);
+    let _key = common::xor(b"I wake ya with hundreds of thousands", &source[34]);
+    let _key = common::xor(b"Melodies-unmakable, pattern-unescapable ", &source[18]);
+    let _key = common::xor(b"Thinkin' of a master plan / 'Cuz ain't n", &source[42]);
+    let _key = common::xor(b"'Cause my girl is definitely mad / 'Cause", &source[55]);
+    let _key = common::xor(b"You want to hear some sounds that not only ", &source[26]);
+    let _key = common::xor(b"Cuz I came back to attack others in spite-", &source[1]);
+    let _key = common::xor(b"Yo, I hear what you're saying / So let's just", &source[56]);
+    let _key = common::xor(b"Worse than a nightmare, you don't have to sleep ", &source[12]);
+    let key = common::xor(b"Music's the clue, when I come your warned / Apocalypse", &source[5]);
+    //.... I can just keep trying till I get the answer out...
+
+    for (count, s) in source.iter().enumerate() {
+        println!("{:3}: {}", count, String::from_utf8_lossy(&common::xor(&key, s)));
+    }
 
     Ok(())
 }
