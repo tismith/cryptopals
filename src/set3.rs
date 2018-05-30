@@ -22,6 +22,7 @@ fn set3_challenge23() -> utils::types::Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
 fn temper(mut y: usize) -> usize {
 //--------------------------------------------------
 //     y ^= y >> 11;
