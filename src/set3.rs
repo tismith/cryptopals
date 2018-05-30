@@ -7,12 +7,10 @@ use utils;
 use utils::types::ResultExt;
 
 pub fn run_set3() -> utils::types::Result<()> {
-//--------------------------------------------------
-//     set3_challenge17()?;
-//     set3_challenge18()?;
-//     set3_challenge19()?;
-//     set3_challenge20()?;
-//-------------------------------------------------- 
+    set3_challenge17()?;
+    set3_challenge18()?;
+    set3_challenge19()?;
+    set3_challenge20()?;
     set3_challenge21()?;
     Ok(())
 }
