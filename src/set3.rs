@@ -12,6 +12,29 @@ pub fn run_set3() -> utils::types::Result<()> {
     set3_challenge19()?;
     set3_challenge20()?;
     set3_challenge21()?;
+    set3_challenge22()?;
+    Ok(())
+}
+
+fn set3_challenge22() -> utils::types::Result<()> {
+    println!("Set 3 Challenge 22");
+    let num_seconds = rand::random::<usize>() % 960 + 40;
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?;
+    let secret_seed = now.as_secs() as usize - num_seconds * 2;
+    println!("Seed is {}", secret_seed);
+    let mut mt = common::mt19937_seed(secret_seed);
+    let known_rand = common::mt19937_rand(&mut mt);
+    println!("rand value is: {}", known_rand);
+
+    let starting_seed = now.as_secs() as usize - 1000 * 2;
+    for seed in starting_seed..(starting_seed + 2000) {
+        let mut mt = common::mt19937_seed(seed);
+        if known_rand == common::mt19937_rand(&mut mt) {
+            println!("Discovered seed to be {}", seed);
+            break;
+        }
+    }
+
     Ok(())
 }
 

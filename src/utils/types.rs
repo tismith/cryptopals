@@ -10,6 +10,7 @@ error_chain!{
         Base64DecodeError(::base64::DecodeError);
         Io(::std::io::Error);
         OpenSSL(::openssl::error::ErrorStack);
+        SystemTime(::std::time::SystemTimeError);
     }
 }
 
