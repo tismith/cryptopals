@@ -14,8 +14,8 @@ pub struct MT19937 {
 impl MT19937 {
     fn new() -> Self {
         MT19937 {
-           state: vec![0usize; 624],
-           index: 0,
+            state: vec![0usize; 624],
+            index: 0,
         }
     }
 }
@@ -28,7 +28,7 @@ pub fn mt19937_seed(seed: usize) -> MT19937 {
 
     mt.state[0] = seed;
     for i in 1..624 {
-        mt.state[i] = ((1812433253 * mt.state[i-1]) ^ ((mt.state[i-1] >> 30) + i)) & bitmask_1;
+        mt.state[i] = ((1812433253 * mt.state[i - 1]) ^ ((mt.state[i - 1] >> 30) + i)) & bitmask_1;
     }
     mt
 }
@@ -58,7 +58,7 @@ pub fn generate_numbers(mt: &mut MT19937) {
     let bitmask_3: usize = 2usize.pow(31) - 1;
 
     for i in 0..624 {
-        let mut y = (mt.state[i] & bitmask_2) + (mt.state[(i + 1 ) % 624] & bitmask_3);
+        let mut y = (mt.state[i] & bitmask_2) + (mt.state[(i + 1) % 624] & bitmask_3);
         mt.state[i] = mt.state[(i + 397) % 624] ^ (y >> 1);
         if y % 2 != 0 {
             mt.state[i] ^= 2567483615

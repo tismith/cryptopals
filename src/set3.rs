@@ -89,18 +89,18 @@ fn set3_challenge20() -> utils::types::Result<()> {
         cracked_key.push(common::crack_single_xor(slice).0);
     }
 
-//--------------------------------------------------
-//     //row 39 is an example of where I'm getting it wrong
-//     let real39 = b"etag e?H   xt saTu a a t/in  e/d/e merao onsciit///i'iossieo";
-//     println!("correct score is {}", common::chi2_score_english(real39));
-//     println!("{}", String::from_utf8_lossy(&transposed[39]));
-//     let x = common::crack_single_xor(&transposed[39]);
-//     println!("{:#?}", &x);
-//     println!(
-//         "{}",
-//         String::from_utf8_lossy(&common::repeating_key_xor(&transposed[39], &vec![x.0; 1]))
-//     );
-//-------------------------------------------------- 
+    //--------------------------------------------------
+    //     //row 39 is an example of where I'm getting it wrong
+    //     let real39 = b"etag e?H   xt saTu a a t/in  e/d/e merao onsciit///i'iossieo";
+    //     println!("correct score is {}", common::chi2_score_english(real39));
+    //     println!("{}", String::from_utf8_lossy(&transposed[39]));
+    //     let x = common::crack_single_xor(&transposed[39]);
+    //     println!("{:#?}", &x);
+    //     println!(
+    //         "{}",
+    //         String::from_utf8_lossy(&common::repeating_key_xor(&transposed[39], &vec![x.0; 1]))
+    //     );
+    //--------------------------------------------------
 
     for line in &source {
         println!(
