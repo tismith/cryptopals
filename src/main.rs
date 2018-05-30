@@ -16,6 +16,9 @@ extern crate byteorder;
 extern crate hex;
 extern crate openssl;
 extern crate rand;
+#[cfg(test)]
+#[macro_use]
+extern crate proptest;
 
 mod common;
 mod set1;

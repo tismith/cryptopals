@@ -18,3 +18,4 @@ byteorder = "1"
 
 [dev-dependencies]
 assert_cli = "0.5"
+proptest = "0.7.0"

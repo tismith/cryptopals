@@ -13,7 +13,37 @@ pub fn run_set3() -> utils::types::Result<()> {
     set3_challenge20()?;
     set3_challenge21()?;
     set3_challenge22()?;
+    set3_challenge23()?;
     Ok(())
+}
+
+fn set3_challenge23() -> utils::types::Result<()> {
+
+    Ok(())
+}
+
+fn temper(mut y: usize) -> usize {
+//--------------------------------------------------
+//     y ^= y >> 11;
+//-------------------------------------------------- 
+//--------------------------------------------------
+//     y ^= (y << 7) & 2636928640;
+//-------------------------------------------------- 
+    y ^= (y << 15) & 4022730752;
+    y ^= y >> 18;
+    y
+}
+
+fn untemper(mut y: usize) -> usize {
+    y ^= y >> 18;
+    y ^= (y << 15) & 4022730752;
+//--------------------------------------------------
+//     y ^= (y << 7) & 2636928640;
+//-------------------------------------------------- 
+//--------------------------------------------------
+//     y ^= y >> 1;
+//-------------------------------------------------- 
+    y
 }
 
 fn set3_challenge22() -> utils::types::Result<()> {
@@ -89,18 +119,18 @@ fn set3_challenge20() -> utils::types::Result<()> {
         cracked_key.push(common::crack_single_xor(slice).0);
     }
 
-    //--------------------------------------------------
-    //     //row 39 is an example of where I'm getting it wrong
-    //     let real39 = b"etag e?H   xt saTu a a t/in  e/d/e merao onsciit///i'iossieo";
-    //     println!("correct score is {}", common::chi2_score_english(real39));
-    //     println!("{}", String::from_utf8_lossy(&transposed[39]));
-    //     let x = common::crack_single_xor(&transposed[39]);
-    //     println!("{:#?}", &x);
-    //     println!(
-    //         "{}",
-    //         String::from_utf8_lossy(&common::repeating_key_xor(&transposed[39], &vec![x.0; 1]))
-    //     );
-    //--------------------------------------------------
+//--------------------------------------------------
+//     //row 39 is an example of where I'm getting it wrong
+//     let real39 = b"etag e?H   xt saTu a a t/in  e/d/e merao onsciit///i'iossieo";
+//     println!("correct score is {}", common::chi2_score_english(real39));
+//     println!("{}", String::from_utf8_lossy(&transposed[39]));
+//     let x = common::crack_single_xor(&transposed[39]);
+//     println!("{:#?}", &x);
+//     println!(
+//         "{}",
+//         String::from_utf8_lossy(&common::repeating_key_xor(&transposed[39], &vec![x.0; 1]))
+//     );
+//-------------------------------------------------- 
 
     for line in &source {
         println!(
@@ -351,4 +381,12 @@ fn decrypt_and_check_padding(
 #[cfg(test)]
 mod test {
     use super::*;
+    use ::proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn test_untemper_prop(seed in any::<u32>()) {
+            assert_eq!(untemper(temper(seed as usize)), seed as usize);
+        }
+    }
 }
