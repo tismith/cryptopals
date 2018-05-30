@@ -6,6 +6,66 @@ use std;
 use utils;
 use utils::types::ResultExt;
 
+pub struct MT19937 {
+    state: Vec<usize>,
+    index: usize,
+}
+
+impl MT19937 {
+    fn new() -> Self {
+        MT19937 {
+           state: vec![0usize; 624],
+           index: 0,
+        }
+    }
+}
+
+/// Initialize the generator from a seed"
+pub fn mt19937_seed(seed: usize) -> MT19937 {
+    let mut mt = MT19937::new();
+    //To get last 32 bits
+    let bitmask_1: usize = 2usize.pow(32) - 1;
+
+    mt.state[0] = seed;
+    for i in 1..624 {
+        mt.state[i] = ((1812433253 * mt.state[i-1]) ^ ((mt.state[i-1] >> 30) + i)) & bitmask_1;
+    }
+    mt
+}
+
+/// Extract a tempered pseudorandom number based on the index-th value,
+/// calling generate_numbers() every 624 numbers
+pub fn mt19937_rand(mt: &mut MT19937) -> usize {
+    if mt.index == 0 {
+        generate_numbers(mt);
+    }
+    let mut y = mt.state[mt.index];
+    y ^= y >> 11;
+    y ^= (y << 7) & 2636928640;
+    y ^= (y << 15) & 4022730752;
+    y ^= y >> 18;
+
+    mt.index = (mt.index + 1) % 624;
+    y
+}
+
+/// Generate an array of 624 untempered numbers"
+pub fn generate_numbers(mt: &mut MT19937) {
+    //To get 32. bit
+    let bitmask_2: usize = 2usize.pow(31);
+
+    //To get last 31 bits
+    let bitmask_3: usize = 2usize.pow(31) - 1;
+
+    for i in 0..624 {
+        let mut y = (mt.state[i] & bitmask_2) + (mt.state[(i + 1 ) % 624] & bitmask_3);
+        mt.state[i] = mt.state[(i + 397) % 624] ^ (y >> 1);
+        if y % 2 != 0 {
+            mt.state[i] ^= 2567483615
+        }
+    }
+}
+
 pub fn strip_pkcs7_padding(plaintext: &[u8]) -> utils::types::Result<&[u8]> {
     let blocksize = 16;
     if plaintext.len() % blocksize != 0 {
