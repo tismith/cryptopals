@@ -386,7 +386,7 @@ mod test {
     proptest! {
         #[test]
         fn test_untemper_prop(seed in any::<u32>()) {
-            assert_eq!(untemper(temper(seed as usize)), seed as usize);
+            prop_assert_eq!(untemper(temper(seed as usize)), seed as usize);
         }
     }
 }
