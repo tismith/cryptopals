@@ -71,7 +71,7 @@ pub fn hamming_distance(a: &[u8], b: &[u8]) -> usize {
 pub fn crack_single_xor(encrypted: &[u8]) -> (u8, f64) {
     let mut best_key = 0;
     let mut best_score = std::f64::MAX;
-    for key in 0..std::u8::MAX {
+    for key in 0..=std::u8::MAX {
         let plaintext = single_char_xor(encrypted, &key);
         let score = chi2_score_english(&plaintext);
 
@@ -109,7 +109,7 @@ pub fn chi2_score_english(plaintext: &[u8]) -> f64 {
         (b'h', 0.048_529_416_142_042_835),
         (b'c', 0.017_713_086_574_094_743),
         (b',', 0.011_874_209_343_513_268),
-        (b':', 0.000_302_123_796_341_771_94),
+        (b'/', 0.000_302_123_796_341_771_94),
         (b'k', 0.005_724_278_549_210_459),
         (b's', 0.047_598_934_381_092_71),
         (b' ', 0.153_896_206_337_158_25),
@@ -143,7 +143,7 @@ pub fn chi2_score_english(plaintext: &[u8]) -> f64 {
         let population_freq = *(pop_frequencies.get(key).unwrap_or(&0.0));
         let expected = population_freq * sample_size;
         //add something so we never divide by 0
-        score += ((observed - expected).powi(2)) / (expected + 0.000_000_000_000_01);
+        score += ((observed - expected).powi(2)) / (expected + std::f64::EPSILON);
     }
     score
 }
